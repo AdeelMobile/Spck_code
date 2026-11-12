@@ -8,7 +8,7 @@ const seed=()=>({
     {id:'p3',brand:'Tecno',name:'Spark 20',price:38000,stock:6,img:''},
     {id:'p4',brand:'Apple',name:'iPhone 13 128GB',price:165000,stock:3,img:''}
   ],
-  sales:[],verifications:[],purchases:[],cashbook:[],wallets:[]
+  sales:[],verifications:[],purchases:[],cashbook:[],wallets:[],expenses:[] // Expenses add kiya
 });
 
 let D;try{D=JSON.parse(localStorage.getItem(K))}catch(e){}D=D||seed();
@@ -16,6 +16,7 @@ if(!D.verifications)D.verifications=[];
 if(!D.purchases)D.purchases=[];
 if(!D.cashbook)D.cashbook=[];
 if(!D.wallets)D.wallets=[];
+if(!D.expenses)D.expenses=[]; // Purane data me expenses array check kiya
 const save=()=>{try{localStorage.setItem(K,JSON.stringify(D))}catch(e){}};
 D.settings={...seed().settings,...D.settings};
 

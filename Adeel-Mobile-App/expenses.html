@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Expenses - Adeel Mobile</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+if(me.role!=='admin') window.location.href='dashboard.html';
+
+let searchQuery = '';
+let filterDate = '';
+
+function loadExpenses() {
+  let list = D.expenses || [];
+  
+  if(searchQuery) {
+    list = list.filter(e => e.desc.toLowerCase().includes(searchQuery.toLowerCase()) || (e.ref && e.ref.toLowerCase().includes(searchQuery.toLowerCase())));
+  }
+  if(filterDate) {
+    list = list.filter(e => {
+      const d = new Date(e.date).toISOString().split('T')[0];
+      return d === filterDate;
+    });
+  }
+
+  const totalAmount = list.reduce((sum, e) => sum + e.amount, 0);
+
+  let html = `
+  <div class="top">
+    <h2>Expenses</h2>
+    <button class="btn" onclick="showExpenseModal()">+ Create Expense</button>
+  </div>
+
+  <div class="card" style="padding:12px; display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+    <input type="text" id="searchExp" placeholder="Search description..." style="flex:1; min-width:200px;" oninput="searchQuery=this.value; loadExpenses()" value="${esc(searchQuery)}">
+    <input type="date" id="dateExp" style="flex:1; max-width:200px;" onchange="filterDate=this.value; loadExpenses()" value="${filterDate}">
+  </div>
+
+  <div class="grid">
+    <div class="stat">
+      <small>Total Filtered Expenses</small>
+      <b style="color:var(--bad)">${rs(totalAmount)}</b>
+    </div>
+  </div>
+
+  <h3 style="margin-bottom:10px; font-size:16px;">Expense History</h3>
+  <div class="tw">
+    <table>
+      <tr>
+        <th>Date</th>
+        <th>Description</th>
+        <th>Reference</th>
+        <th>Amount</th>
+      </tr>
+      ${list.slice().reverse().map(e => `
+        <tr>
+          <td>${new Date(e.date).toLocaleDateString('en-GB')}</td>
+          <td>${esc(e.desc)}</td>
+          <td>${esc(e.ref) || '-'}</td>
+          <td style="color:var(--bad); font-weight:bold;">${rs(e.amount)}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="4" style="text-align:center; color:var(--mute);">No expenses found.</td></tr>'}
+    </table>
+  </div>
+  `;
+
+  renderApp('Expenses', html);
+}
+
+function showExpenseModal() {
+  let html = `
+    <h3>Create Expense</h3>
+    <label>Description</label>
+    <input id="exp_desc" placeholder="e.g. Shop Rent, Electricity Bill">
+    
+    <label>Reference (Optional)</label>
+    <input id="exp_ref" placeholder="e.g. Bill No, Person Name">
+    
+    <label>Amount (Rs)</label>
+    <input id="exp_amt" type="number" min="1" placeholder="0">
+    
+    <div style="margin-top:20px; display:flex; gap:10px;">
+      <button class="btn" onclick="saveExpense()">Save Expense</button>
+      <button class="btn sec" onclick="modal()">Cancel</button>
+    </div>
+  `;
+  modal(html);
+}
+
+function saveExpense() {
+  const desc = v('exp_desc').trim();
+  const ref = v('exp_ref').trim();
+  const amt = +v('exp_amt');
+
+  if(!desc || amt <= 0) return alert('Please enter valid description and amount.');
+
+  // 1. Save Expense Data
+  D.expenses.push({
+    id: uid(),
+    desc: desc,
+    ref: ref,
+    amount: amt,
+    date: Date.now()
+  });
+
+  // 2. Cashbook me Out entry karna (Cash In Hand kam hoga)
+  D.cashbook.push({
+    id: uid(),
+    date: Date.now(),
+    type: 'Out',
+    amount: amt,
+    description: `Expense: ${desc} (${ref || 'No Ref'})`,
+    refId: 'expense'
+  });
+
+  save();
+  modal();
+  loadExpenses();
+  alert('Expense created successfully! Cash in Hand updated.');
+}
+
+loadExpenses();
+</script>
+</body>
+</html>
