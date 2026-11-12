@@ -5,6 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Settings - Adeel Mobile</title>
 <link rel="stylesheet" href="css/style.css">
+<style>
+  /* Settings Tabs (Buttons) */
+  .set-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 15px; scrollbar-width: none; }
+  .set-tabs::-webkit-scrollbar { display: none; }
+  .set-tab-btn {
+    background: #fff; border: 1px solid var(--line); color: var(--ink);
+    padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    white-space: nowrap; cursor: pointer; transition: 0.2s;
+  }
+  .set-tab-btn:hover { border-color: var(--pri); }
+  .set-tab-btn.active { background: var(--pri); color: #fff; border-color: var(--pri); }
+
+  /* Settings Panels */
+  .set-panel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 20px; max-width: 520px; }
+  .set-panel.active { display: block; }
+  
+  .set-panel h3 { font-size: 16px; color: var(--ink); margin-bottom: 15px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+</style>
 </head>
 <body>
 <div id="root"></div>
@@ -29,6 +47,8 @@ const FONTS=['Roboto','Poppins','Open Sans','Lato','Montserrat','Inter','Nunito'
 const SYS=['Calibri','Segoe UI','Arial','Verdana','Tahoma'];
 const fopt=c=>FONTS.map(f=>`<option ${f==c?'selected':''}>${f}</option>`).join('');
 
+let currentTab = 'shop'; // Default tab
+
 // --- APPLY LOOK ---
 function applyLook(){
   const s = D.settings;
@@ -45,15 +65,14 @@ function applyLook(){
   r.setProperty('--fh',ff(s.hf||'Inter'));
   r.setProperty('--fb',ff(s.bf||'Inter'));
   
-  // Saare 4 Font Sizes apply karna
   r.setProperty('--fs',(s.fs||15)+'px');       
   r.setProperty('--hfs',(s.hfs||22)+'px');     
   r.setProperty('--sfs',(s.sfs||18)+'px');     
   r.setProperty('--lfs',(s.lfs||13)+'px');     
+  r.setProperty('--nfs',(s.nfs||15)+'px');
   
   r.setProperty('--cols',s.cols||2);
 
-  // Headings wale variables apply karna
   r.setProperty('--head-case', s.headCase || 'none');
   r.setProperty('--head-color', s.headColor || '#000000');
   r.setProperty('--th-color', s.thColor || '#334155');
@@ -76,49 +95,48 @@ function setLook(k, x){
   loadSettings();
 }
 
+function switchTab(tab) {
+  currentTab = tab;
+  loadSettings();
+}
+
 // --- LOAD SETTINGS PAGE ---
 function loadSettings(){
   const s = D.settings;
   
   let html = `<div class="top"><h2>Settings</h2></div>
   
-  <div class="card" style="max-width:480px">
+  <!-- Top Tabs (Buttons) -->
+  <div class="set-tabs">
+    <button class="set-tab-btn ${currentTab==='shop'?'active':''}" onclick="switchTab('shop')">🏪 Shop Details</button>
+    <button class="set-tab-btn ${currentTab==='login'?'active':''}" onclick="switchTab('login')">🔐 Login</button>
+    <button class="set-tab-btn ${currentTab==='fonts'?'active':''}" onclick="switchTab('fonts')">🔤 Fonts</button>
+    <button class="set-tab-btn ${currentTab==='theme'?'active':''}" onclick="switchTab('theme')">🎨 Theme</button>
+    <button class="set-tab-btn ${currentTab==='cards'?'active':''}" onclick="switchTab('cards')">🃏 Product Cards</button>
+    <button class="set-tab-btn ${currentTab==='backup'?'active':''}" onclick="switchTab('backup')">💾 Backup Restore</button>
+  </div>
+
+  <!-- 1. Shop Details Panel -->
+  <div class="set-panel ${currentTab==='shop'?'active':''}">
+    <h3>Shop Details</h3>
     <label>Shop name</label><input id="s1" value="${esc(s.shop)}">
     <label>Contact / WhatsApp</label><input id="s2" value="${esc(s.phone)}">
     <label>Address</label><input id="s3" value="${esc(s.addr)}">
     <label>Default markup % (installment profit)</label><input id="s4" type="number" value="${s.markup}">
-    <label>Admin password</label><input id="s5" value="${esc(me.pass)}">
-    <button class="btn" style="margin-top:14px" onclick="saveSet()">Save Settings</button>
-    <button class="btn red" style="margin-top:14px;margin-left:8px" onclick="if(confirm('Sara data reset ho jayega!')){localStorage.removeItem(K); sessionStorage.removeItem('am_s'); window.location.href='index.html';}">Reset all data</button>
+    <button class="btn" style="margin-top:15px" onclick="saveShop()">Save Shop Details</button>
   </div>
-  
-  <div class="card" style="max-width:480px;margin-top:16px">
-    <h3 style="font-size:16px">Appearance</h3>
-    
-    <label>Heading Style (Capital/Regular)</label>
-    <select onchange="setLook('headCase', this.value)">
-      <option value="none" ${s.headCase=='none'||!s.headCase?'selected':''}>Regular (Aa Bb Cc)</option>
-      <option value="uppercase" ${s.headCase=='uppercase'?'selected':''}>CAPITAL (AA BB CC)</option>
-    </select>
 
-    <label>Heading & Table Text Color</label>
-    <select onchange="setLook('headColor', this.value); setLook('thColor', this.value);">
-      <option value="#000000" ${s.headColor=='#000000'||!s.headColor?'selected':''}>Pure Black (Default)</option>
-      <option value="#1e293b" ${s.headColor=='#1e293b'?'selected':''}>Dark Slate</option>
-      <option value="#2563eb" ${s.headColor=='#2563eb'?'selected':''}>Brand Blue</option>
-      <option value="#0f766e" ${s.headColor=='#0f766e'?'selected':''}>Emerald Green</option>
-      <option value="#6d28d9" ${s.headColor=='#6d28d9'?'selected':''}>Royal Purple</option>
-      <option value="#b45309" ${s.headColor=='#b45309'?'selected':''}>Classic Gold</option>
-    </select>
+  <!-- 2. Login Panel -->
+  <div class="set-panel ${currentTab==='login'?'active':''}">
+    <h3>Admin Login</h3>
+    <label>Admin Password</label>
+    <input id="s5" value="${esc(me.pass)}">
+    <button class="btn" style="margin-top:15px" onclick="saveLogin()">Update Password</button>
+  </div>
 
-    <label style="margin-top:16px">Theme template</label>
-    <div class="ths" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
-      ${Object.keys(TH).map(k=>`<button class="th ${s.theme==k?'on':''}" onclick="setLook('theme','${k}')" style="display:flex;align-items:center;gap:6px;padding:8px;border:1px solid ${s.theme==k?'var(--pri)':'var(--line)'};border-radius:10px;background:var(--card);color:var(--ink);cursor:pointer;font-size:13px">
-        <i style="width:16px;height:16px;border-radius:50%;border:1px solid var(--line);flex:none;background:${TH[k].pri}"></i>
-        <i style="width:16px;height:16px;border-radius:50%;border:1px solid var(--line);flex:none;background:${TH[k].panel||TH[k].bg}"></i>
-        ${TH[k].n}
-      </button>`).join('')}
-    </div>
+  <!-- 3. Fonts Panel -->
+  <div class="set-panel ${currentTab==='fonts'?'active':''}">
+    <h3>Fonts & Sizes</h3>
     
     <label>Heading font</label>
     <select onchange="setLook('hf',this.value)">${fopt(s.hf||'Inter')}</select>
@@ -126,10 +144,8 @@ function loadSettings(){
     <label>Body font</label>
     <select onchange="setLook('bf',this.value)">${fopt(s.bf||'Inter')}</select>
 
-    <div style="background:var(--pri2);padding:12px;border-radius:10px;margin-top:16px;margin-bottom:16px;">
-      <h4 style="margin:0 0 10px 0;color:var(--pri);font-size:14px;">Font Sizes Control</h4>
-      
-      <label style="margin-top:8px">Main Heading Size (px)</label>
+    <div style="background:var(--bg);padding:12px;border-radius:10px;margin-top:15px;border:1px solid var(--line);">
+      <label style="margin-top:0">Main Heading Size (px)</label>
       <select onchange="setLook('hfs',+this.value)">
         ${[18,20,22,24,26,28,30].map(n=>`<option ${(s.hfs||22)==n?'selected':''}>${n}</option>`).join('')}
       </select>
@@ -148,38 +164,85 @@ function loadSettings(){
       <select onchange="setLook('lfs',+this.value)">
         ${[10,11,12,13,14,15].map(n=>`<option ${(s.lfs||13)==n?'selected':''}>${n}</option>`).join('')}
       </select>
+
+      <label>Side Menu Font Size (px)</label>
+      <select onchange="setLook('nfs',+this.value)">
+        ${[12,13,14,15,16,17,18,19,20].map(n=>`<option ${(s.nfs||15)==n?'selected':''}>${n}</option>`).join('')}
+      </select>
     </div>
+  </div>
+
+  <!-- 4. Theme Panel -->
+  <div class="set-panel ${currentTab==='theme'?'active':''}">
+    <h3>Theme & Colors</h3>
     
-    <label>Product cards per row</label>
+    <label>Heading Style (Capital/Regular)</label>
+    <select onchange="setLook('headCase', this.value)">
+      <option value="none" ${s.headCase=='none'||!s.headCase?'selected':''}>Regular (Aa Bb Cc)</option>
+      <option value="uppercase" ${s.headCase=='uppercase'?'selected':''}>CAPITAL (AA BB CC)</option>
+    </select>
+
+    <label>Heading & Table Text Color</label>
+    <select onchange="setLook('headColor', this.value); setLook('thColor', this.value);">
+      <option value="#000000" ${s.headColor=='#000000'||!s.headColor?'selected':''}>Pure Black (Default)</option>
+      <option value="#1e293b" ${s.headColor=='#1e293b'?'selected':''}>Dark Slate</option>
+      <option value="#2563eb" ${s.headColor=='#2563eb'?'selected':''}>Brand Blue</option>
+      <option value="#0f766e" ${s.headColor=='#0f766e'?'selected':''}>Emerald Green</option>
+      <option value="#6d28d9" ${s.headColor=='#6d28d9'?'selected':''}>Royal Purple</option>
+      <option value="#b45309" ${s.headColor=='#b45309'?'selected':''}>Classic Gold</option>
+    </select>
+
+    <label style="margin-top:16px">Theme Template</label>
+    <div class="ths" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+      ${Object.keys(TH).map(k=>`<button class="th ${s.theme==k?'on':''}" onclick="setLook('theme','${k}')" style="display:flex;align-items:center;gap:6px;padding:8px;border:1px solid ${s.theme==k?'var(--pri)':'var(--line)'};border-radius:10px;background:var(--card);color:var(--ink);cursor:pointer;font-size:13px">
+        <i style="width:16px;height:16px;border-radius:50%;border:1px solid var(--line);flex:none;background:${TH[k].pri}"></i>
+        <i style="width:16px;height:16px;border-radius:50%;border:1px solid var(--line);flex:none;background:${TH[k].panel||TH[k].bg}"></i>
+        ${TH[k].n}
+      </button>`).join('')}
+    </div>
+  </div>
+
+  <!-- 5. Product Cards Panel -->
+  <div class="set-panel ${currentTab==='cards'?'active':''}">
+    <h3>Product Cards Layout</h3>
+    <label>Cards per row</label>
     <select onchange="setLook('cols',+this.value)">
       ${[1,2,3,4].map(n=>`<option ${s.cols==n?'selected':''}>${n}</option>`).join('')}
     </select>
     <p class="hint">Tabdeeli foran lagu hoti hai aur khud save ho jati hai.</p>
   </div>
-  
-  <div class="card" style="max-width:480px;margin-top:16px">
-    <h3 style="font-size:16px">Backup / Restore</h3>
-    <p class="hint" style="margin-top:6px">Data isi browser me save hota hai. Backup zaroor rakhein.</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+
+  <!-- 6. Backup / Restore Panel -->
+  <div class="set-panel ${currentTab==='backup'?'active':''}">
+    <h3>Backup / Restore</h3>
+    <p class="hint" style="margin-bottom:15px;">Data isi browser me save hota hai. Backup zaroor rakhein.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn sm" onclick="bkDl()">Download backup</button>
       <button class="btn sm sec" onclick="bkCopy()">Copy backup text</button>
     </div>
-    <label>Backup text (paste karein ya file chunen)</label>
+    <label style="margin-top:15px">Backup text (paste karein ya file chunen)</label>
     <textarea id="bk" rows="5" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)"></textarea>
     <input type="file" accept=".json,.txt" style="margin-top:8px" onchange="bkFile(this)">
     <button class="btn red" style="margin-top:10px" onclick="bkRestore()">Restore from backup</button>
-  </div>`;
+    <button class="btn red" style="margin-top:10px; width:100%" onclick="if(confirm('Sara data reset ho jayega!')){localStorage.removeItem(K); sessionStorage.removeItem('am_s'); window.location.href='index.html';}">Reset all data</button>
+  </div>
+  `;
 
   renderApp('Settings', html);
 }
 
-// --- SAVE & BACKUP FUNCTIONS ---
-function saveSet(){
+// --- SAVE FUNCTIONS ---
+function saveShop(){
   Object.assign(D.settings, {shop:v('s1'), phone:v('s2'), addr:v('s3'), markup:+v('s4')||0});
-  if(v('s5')) me.pass = v('s5');
-  save(); alert('Saved'); loadSettings();
+  save(); alert('Shop details saved!'); loadSettings();
 }
 
+function saveLogin(){
+  if(v('s5')) me.pass = v('s5');
+  save(); alert('Password updated!'); loadSettings();
+}
+
+// --- BACKUP FUNCTIONS ---
 function bkDl(){
   try{
     const a = document.createElement('a');

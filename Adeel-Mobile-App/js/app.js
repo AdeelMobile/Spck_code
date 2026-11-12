@@ -1,6 +1,7 @@
 const K='adeelmobile_v3',uid=()=>Math.random().toString(36).slice(2,9);
 const seed=()=>({
-  settings:{shop:'Adeel Mobile',phone:'0321-4265688',addr:'411 Chowk Shalamar, Shalimar Link Road, Lahore',markup:20,theme:'classic',fs:15,hfs:22,sfs:18,lfs:13},
+  // Yahan nfs:15 add kiya gaya hai
+  settings:{shop:'Adeel Mobile',phone:'0321-4265688',addr:'411 Chowk Shalamar, Shalimar Link Road, Lahore',markup:20,theme:'classic',fs:15,hfs:22,sfs:18,lfs:13,nfs:15},
   users:[{id:'u0',name:'Administrator',username:'admin',pass:'admin123',role:'admin',phone:'',active:true,biz:'',addr:'',target:0,brandMarkup:{},wallet:0}],
   products:[
     {id:'p1',brand:'Samsung',name:'Galaxy A15 128GB',price:48000,stock:10,img:''},
@@ -8,7 +9,7 @@ const seed=()=>({
     {id:'p3',brand:'Tecno',name:'Spark 20',price:38000,stock:6,img:''},
     {id:'p4',brand:'Apple',name:'iPhone 13 128GB',price:165000,stock:3,img:''}
   ],
-  sales:[],verifications:[],purchases:[],cashbook:[],wallets:[],expenses:[] // Expenses add kiya
+  sales:[],verifications:[],purchases:[],cashbook:[],wallets:[],expenses:[]
 });
 
 let D;try{D=JSON.parse(localStorage.getItem(K))}catch(e){}D=D||seed();
@@ -16,7 +17,7 @@ if(!D.verifications)D.verifications=[];
 if(!D.purchases)D.purchases=[];
 if(!D.cashbook)D.cashbook=[];
 if(!D.wallets)D.wallets=[];
-if(!D.expenses)D.expenses=[]; // Purane data me expenses array check kiya
+if(!D.expenses)D.expenses=[];
 const save=()=>{try{localStorage.setItem(K,JSON.stringify(D))}catch(e){}};
 D.settings={...seed().settings,...D.settings};
 

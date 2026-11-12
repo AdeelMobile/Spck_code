@@ -1,4 +1,4 @@
-let openCategories = { 'Installment': true }; // Default open category
+let openCategories = { 'installment': true };
 
 function renderApp(title, contentHTML) {
   if (!checkAuth()) return;
@@ -10,10 +10,10 @@ function renderApp(title, contentHTML) {
   document.documentElement.style.setProperty('--sfs', (D.settings.sfs || 18) + 'px');
   document.documentElement.style.setProperty('--lfs', (D.settings.lfs || 13) + 'px');
   document.documentElement.style.setProperty('--fs', (D.settings.fs || 15) + 'px');
+  document.documentElement.style.setProperty('--nfs', (D.settings.nfs || 15) + 'px');
   
   const A = me.role === 'admin';
 
-  // Admin Categories
   const navAdmin = [
     { id: 'installment', cat: 'Installment', items: [
       ['users.html', 'Users', '👥'],
@@ -38,7 +38,6 @@ function renderApp(title, contentHTML) {
     ]}
   ];
 
-  // User Menu
   const navUser = [
     ['dashboard.html', 'Dashboard', '📊'],
     ['my-store.html', 'My Store', '🌐'],
@@ -51,7 +50,6 @@ function renderApp(title, contentHTML) {
   const path = window.location.pathname;
   const page = path.substring(path.lastIndexOf('/') + 1) || 'dashboard.html';
 
-  // Sidebar Menu Render
   let navHtml = '';
   
   if(A) {
@@ -62,18 +60,18 @@ function renderApp(title, contentHTML) {
       const hasActiveChild = group.items.some(item => item[0] === page);
       
       let btnClass = "nav";
-      // Agar category open hai ya uske andar ka page active hai to button blue hoga
       if (isOpen || hasActiveChild) btnClass += " on";
       
       return `
         <div style="margin-bottom:6px;">
-          <button class="${btnClass}" onclick="toggleDropdown('${group.id}')" style="justify-content:space-between; width:100%;">
+          <!-- Yahan onmousedown add kiya hai jo scroll foran rokta hai -->
+          <div class="${btnClass}" onmousedown="event.preventDefault()" onclick="toggleDropdown('${group.id}')" style="justify-content:space-between; cursor:pointer; user-select:none;">
             <span>${group.cat}</span>
             <span style="font-size:12px; transform: ${isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}; transition:0.3s;">▼</span>
-          </button>
+          </div>
           <div id="dd-${group.id}" style="display:${isOpen ? 'block' : 'none'}; padding-left:10px; border-left:2px solid var(--line); margin-left:12px; margin-top:4px;">
             ${group.items.map(n => `
-              <a href="${n[0]}" class="nav ${page===n[0]?'on':''}" style="font-size:13.5px; padding:8px 12px;">
+              <a href="${n[0]}" class="nav ${page===n[0]?'on':''}" style="padding:8px 12px;">
                 <span>${n[2]}</span>${n[1]}
               </a>
             `).join('')}
@@ -112,13 +110,11 @@ function renderApp(title, contentHTML) {
   document.getElementById('root').innerHTML = html;
 }
 
-// Naya Function: Sirf dropdown open/close karne ke liye
 function toggleDropdown(id) {
   const dd = document.getElementById('dd-' + id);
   const btn = dd.previousElementSibling;
   const arrow = btn.querySelector('span:last-child');
 
-  // State change karein
   if (dd.style.display === 'none' || dd.style.display === '') {
     dd.style.display = 'block';
     btn.classList.add('on');

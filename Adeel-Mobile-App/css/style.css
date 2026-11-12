@@ -21,6 +21,7 @@
   --hfs:22px;  /* Main Heading (H1, H2) */
   --sfs:18px;  /* Sub Heading / Card Titles (H3) */
   --lfs:13px;  /* Labels & Small Text */
+  --nfs:15px;  /* Side Menu Font Size */
   
   --cols:2;
   
@@ -62,9 +63,13 @@ label{display:block;font-size:var(--lfs);color:var(--mute);margin:12px 0 6px;fon
 
 /* App Layout */
 .app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
-.side{background:var(--card);border-right:1px solid var(--line);padding:20px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:6px}
+/* Yahan overflow-anchor: none; add kiya gaya hai */
+.side{background:var(--card);border-right:1px solid var(--line);padding:20px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:6px;overflow-anchor:none;}
 .brand{font-size:20px;color:var(--pri);padding:4px 10px 20px;font-weight:700}
-.nav{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;padding:12px;border-radius:10px;cursor:pointer;color:#2d3748;font-weight:500;text-decoration:none;transition:0.2s;font-size:var(--fs)}
+
+/* Nav uses the new --nfs variable */
+.nav{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;padding:12px;border-radius:10px;cursor:pointer;color:#2d3748;font-weight:500;text-decoration:none;transition:0.2s;font-size:var(--nfs, 15px)}
+
 .nav.on{background:var(--pri2);color:var(--pri);font-weight:600}
 .nav:hover:not(.on){background:var(--bg);color:var(--ink)}
 .who{margin-top:auto;font-size:var(--lfs);color:var(--mute);padding:14px;border-top:1px solid var(--line)}
@@ -115,4 +120,9 @@ tr:last-child td{border-bottom:none}
 @media(min-width:801px){
   .app{padding-top:67px}
   .side{top:67px;height:calc(100vh - 67px)}
+}
+/* Scroll Fix for Buttons */
+button:focus, .nav:focus, div[onclick]:focus {
+  outline: none !important;
+  box-shadow: none !important;
 }
