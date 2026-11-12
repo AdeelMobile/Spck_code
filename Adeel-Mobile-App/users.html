@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Users - Adeel Mobile</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+if(me.role!=='admin') window.location.href='dashboard.html';
+
+function loadUsers(){
+  const U = D.users.filter(u=>u.role!=='admin');
+  
+  let html = `
+  <div class="top">
+    <h2>Users</h2>
+    <button class="btn" onclick="userM()">+ Add User</button>
+  </div>
+  <div class="tw"><table>
+    <tr><th>Name</th><th>Business</th><th>Username</th><th>WhatsApp</th><th>Target</th><th>Achieved</th><th>Status</th><th></th></tr>
+    ${U.map(u=>{
+      const us = D.sales.filter(s=>s.userId==u.id);
+      const ach = us.reduce((a,s)=>a+s.total,0);
+      return `<tr>
+        <td>${esc(u.name)}</td>
+        <td>${esc(u.biz||'-')}</td>
+        <td>${esc(u.username)}</td>
+        <td>${esc(u.phone)}</td>
+        <td>${u.target?rs(u.target):'-'}</td>
+        <td>${rs(ach)}</td>
+        <td><span class="tag ${u.active?'ok':'bad'}">${u.active?'Active':'Disabled'}</span></td>
+        <td>
+          <button class="btn sm sec" onclick="userM('${u.id}')">Edit</button> 
+          <button class="btn sm red" onclick="delUser('${u.id}')">Delete</button>
+        </td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="8" style="color:var(--mute)">Koi user nahi. Add User dabayen.</td></tr>'}
+  </table></div>`;
+  
+  renderApp('Users', html);
+}
+
+function userM(id){
+  const u = D.users.find(x=>x.id==id) || {name:'',username:'',pass:'',phone:'',active:true,biz:'',addr:'',target:0,brandMarkup:{}};
+  const brands = [...new Set(D.products.map(p=>p.brand).filter(Boolean))];
+  const bm = u.brandMarkup || {};
+  
+  modal(`<h3>${id?'Edit':'New'} User</h3>
+  <label>Full name</label><input id="un" value="${esc(u.name)}">
+  <label>Business name</label><input id="ub" value="${esc(u.biz||'')}">
+  <label>Address</label><input id="uad" value="${esc(u.addr||'')}">
+  <label>Username</label><input id="uu" value="${esc(u.username)}">
+  <label>Password</label><input id="up" value="${esc(u.pass)}">
+  <label>WhatsApp number</label><input id="ut" value="${esc(u.phone)}">
+  <label>Sale target (Rs)</label><input id="utg" type="number" value="${u.target||0}">
+  <label>Status</label><select id="ua">
+    <option value="1" ${u.active?'selected':''}>Active</option>
+    <option value="0" ${u.active?'':'selected'}>Disabled</option>
+  </select>
+  
+  <label style="margin-top:14px">Brand wise Profit % (optional)</label>
+  <div class="row">${brands.map(b=>`<div>
+    <label style="margin:0 0 2px;font-size:11px">${esc(b)}</label>
+    <input id="bm_${esc(b).replace(/[^a-zA-Z0-9]/g,'_')}" type="number" placeholder="${D.settings.markup}" value="${bm[b]??''}">
+  </div>`).join('') || '<p class="hint">Pehle Products me brand add karein.</p>'}</div>
+  
+  <div style="margin-top:14px;display:flex;gap:8px">
+    <button class="btn" onclick="saveUser('${id||''}')">Save</button>
+    <button class="btn sec" onclick="modal()">Cancel</button>
+  </div>`);
+}
+
+function saveUser(id){
+  const un = v('uu').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+  if(!un || !v('up') || !v('un').trim()) return alert('Name, username aur password zaroori hain');
+  if(D.users.some(x=>x.username==un && x.id!=id)) return alert('Ye username pehle se maujood hai');
+  
+  const brands = [...new Set(D.products.map(p=>p.brand).filter(Boolean))];
+  const brandMarkup = {};
+  brands.forEach(b=>{
+    const inp = $('bm_'+b.replace(/[^a-zA-Z0-9]/g,'_'));
+    if(inp && inp.value!=='') brandMarkup[b] = +inp.value;
+  });
+  
+  const o = {
+    name:v('un').trim(), biz:v('ub').trim(), addr:v('uad').trim(),
+    username:un, pass:v('up'), phone:v('ut').trim(), target:+v('utg')||0,
+    brandMarkup, active:v('ua')=='1', role:'user'
+  };
+  
+  if(id) Object.assign(D.users.find(x=>x.id==id), o);
+  else D.users.push({id:uid(), ...o});
+  
+  save(); modal(); loadUsers();
+}
+
+function delUser(id){
+  if(confirm('User delete karna hai?')){
+    D.users = D.users.filter(u=>u.id!=id);
+    save(); loadUsers();
+  }
+}
+
+loadUsers();
+</script>
+</body>
+</html>

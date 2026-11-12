@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Products - Adeel Mobile</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+if(me.role!=='admin') window.location.href='dashboard.html'; // Sirf admin
+
+function loadProducts(){
+  let html = `
+  <div class="top">
+    <h2>Products</h2>
+    <button class="btn" onclick="prodM()">+ Add Phone</button>
+  </div>
+  <div class="tw"><table>
+    <tr><th>Brand</th><th>Model</th><th>Cash price</th><th>Stock</th><th></th></tr>
+    ${D.products.map(p=>`<tr>
+      <td>${esc(p.brand)}</td>
+      <td>${esc(p.name)}</td>
+      <td>${rs(p.price)}</td>
+      <td>${p.stock}</td>
+      <td>
+        <button class="btn sm sec" onclick="prodM('${p.id}')">Edit</button> 
+        <button class="btn sm red" onclick="delProd('${p.id}')">Delete</button>
+      </td>
+    </tr>`).join('')}
+  </table></div>`;
+  
+  renderApp('Products', html);
+}
+
+function prodM(id){
+  const p = D.products.find(x=>x.id==id) || {brand:'',name:'',price:'',stock:'',img:''};
+  modal(`<h3>${id?'Edit':'New'} Phone</h3>
+  <div class="row">
+    <div><label>Brand</label><input id="pb" value="${esc(p.brand)}"></div>
+    <div><label>Model</label><input id="pn" value="${esc(p.name)}"></div>
+    <div><label>Cash price</label><input id="pp" type="number" value="${p.price}"></div>
+    <div><label>Stock</label><input id="ps" type="number" value="${p.stock}"></div>
+  </div>
+  <label>Image URL (optional)</label><input id="pi" value="${esc(p.img)}">
+  <div style="margin-top:14px;display:flex;gap:8px">
+    <button class="btn" onclick="saveProd('${id||''}')">Save</button>
+    <button class="btn sec" onclick="modal()">Cancel</button>
+  </div>`);
+}
+
+function saveProd(id){
+  const o = {brand:v('pb').trim(), name:v('pn').trim(), price:+v('pp'), stock:+v('ps'), img:v('pi').trim()};
+  if(!o.name || !o.price) return alert('Model aur price likhein');
+  
+  if(id) Object.assign(D.products.find(x=>x.id==id), o);
+  else D.products.push({id:uid(), ...o});
+  
+  save(); modal(); loadProducts();
+}
+
+function delProd(id){
+  if(confirm('Phone delete karna hai?')){
+    D.products = D.products.filter(p=>p.id!=id);
+    save(); loadProducts();
+  }
+}
+
+loadProducts();
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Customers - Adeel Mobile</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+if(me.role!=='admin') window.location.href='dashboard.html';
+
+let filterDealer = '';
+
+function loadCustomers(){
+  const map = {};
+  
+  // Sales ko filter karein agar Admin ne specific user select kiya hai
+  let salesToProcess = D.sales;
+  if(filterDealer){
+    salesToProcess = D.sales.filter(s => s.userId === filterDealer);
+  }
+
+  // Customers ka data nikalna
+  salesToProcess.forEach(s=>{
+    // Hum Customer ko Phone number se pehchante hain
+    if(!map[s.cphone]) {
+      map[s.cphone] = {
+        name: s.cname, 
+        phone: s.cphone, 
+        sales: 0, 
+        total: 0, 
+        paid: 0, 
+        last: 0,
+        dealers: new Set() // Kis kis dealer ne isko sale ki
+      };
+    }
+    map[s.cphone].sales++;
+    map[s.cphone].total += s.total;
+    map[s.cphone].paid += paid(s);
+    map[s.cphone].last = Math.max(map[s.cphone].last, s.date);
+    
+    // Dealer ka naam nikalna
+    const u = D.users.find(x=>x.id == s.userId);
+    if(u) map[s.cphone].dealers.add(u.name);
+  });
+  
+  const arr = Object.values(map).sort((a,b)=>b.last-a.last);
+
+  let html = `<div class="top">
+    <h2>Customers</h2>
+    ${me.role==='admin' ? `
+      <select style="width:220px" onchange="filterDealer=this.value; loadCustomers()">
+        <option value="">All Users / Dealers</option>
+        ${D.users.filter(u=>u.role!=='admin').map(u=>`<option value="${u.id}" ${filterDealer==u.id?'selected':''}>${esc(u.name)} ${u.biz?'('+esc(u.biz)+')':''}</option>`).join('')}
+      </select>
+    ` : ''}
+  </div>`;
+
+  html += `<div class="tw"><table>
+  <tr>
+    <th>Customer Name</th>
+    <th>Phone</th>
+    <th>Dealer(s)</th>
+    <th>Total Sales</th>
+    <th>Total Amount</th>
+    <th>Paid</th>
+    <th>Remaining</th>
+    <th>Last Sale</th>
+  </tr>
+  ${arr.map(c=>`<tr>
+    <td><b>${esc(c.name)}</b></td>
+    <td>${esc(c.phone)}</td>
+    <td><span class="tag sec" style="background:#e2e8f0;color:#475569">${Array.from(c.dealers).join(', ')}</span></td>
+    <td>${c.sales}</td>
+    <td>${rs(c.total)}</td>
+    <td style="color:var(--ok)">${rs(c.paid)}</td>
+    <td style="color:var(--bad)">${rs(c.total-c.paid)}</td>
+    <td>${new Date(c.last).toLocaleDateString('en-GB')}</td>
+  </tr>`).join('') || '<tr><td colspan="8" style="color:var(--mute)">Is user ka koi customer nahi mila.</td></tr>'}
+  </table></div>`;
+  
+  renderApp('Customers', html);
+}
+
+loadCustomers();
+</script>
+</body>
+</html>

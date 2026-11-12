@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>In Stock - Adeel Mobile</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+
+function loadInStock(){
+  // Total stock value aur total phones ka hisaab
+  let totalValue = 0;
+  let totalPhones = 0;
+  
+  D.products.forEach(p => {
+    totalValue += (p.price * p.stock);
+    totalPhones += p.stock;
+  });
+
+  let html = `
+  <div class="top">
+    <h2>In Stock (Inventory)</h2>
+    <a href="new-sale.html" class="btn">+ Purchase / Sale</a>
+  </div>
+  
+  <div class="grid">
+    <div class="stat"><small>Total Phones Available</small><b>${totalPhones}</b></div>
+    <div class="stat"><small>Total Stock Value</small><b style="color:var(--ok)">${rs(totalValue)}</b></div>
+  </div>
+
+  <div class="tw"><table>
+    <tr>
+      <th>Brand</th>
+      <th>Model</th>
+      <th>Purchase Price</th>
+      <th>Available Stock</th>
+      <th>Total Value</th>
+    </tr>
+    ${D.products.map(p=>`<tr>
+      <td>${esc(p.brand)}</td>
+      <td>${esc(p.name)}</td>
+      <td>${rs(p.price)}</td>
+      <td>
+        <b style="color:${p.stock>0?'var(--ok)':'var(--bad)'}; font-size:16px;">${p.stock}</b>
+      </td>
+      <td>${rs(p.price * p.stock)}</td>
+    </tr>`).join('') || '<tr><td colspan="5" style="color:var(--mute)">Stock khali hai. Pehle purchase karein.</td></tr>'}
+  </table></div>`;
+
+  renderApp('In Stock', html);
+}
+
+loadInStock();
+</script>
+</body>
+</html>

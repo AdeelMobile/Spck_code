@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Wallet - Adeel Mobile</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+
+function loadMyWallet(){
+  // User ke transactions nikalna
+  const myTx = (D.wallets || []).filter(w => w.userId === me.id);
+  
+  // Total Balance nikalna (In minus Out)
+  let balance = 0;
+  myTx.forEach(t => {
+    if(t.type === 'In') balance += t.amount;
+    if(t.type === 'Out') balance -= t.amount;
+  });
+
+  // Newest first
+  const sortedTx = myTx.slice().sort((a,b) => b.date - a.date);
+
+  let html = `
+  <div class="top">
+    <h2>My Wallet</h2>
+  </div>
+  
+  <div class="grid">
+    <div class="stat" style="grid-column: span 2; background:var(--pri2); border-color:var(--pri);">
+      <small style="color:var(--pri); font-weight:600;">Total Wallet Balance</small>
+      <b style="color:var(--pri); font-size:32px;">${rs(balance)}</b>
+    </div>
+  </div>
+
+  <h3 style="margin-bottom:12px; font-size:18px;">Transaction History</h3>
+  <div class="tw">
+    <table>
+      <tr>
+        <th>Date</th>
+        <th>Description</th>
+        <th>Type</th>
+        <th>Amount</th>
+      </tr>
+      ${sortedTx.map(t => `
+        <tr>
+          <td>${new Date(t.date).toLocaleDateString('en-GB')}</td>
+          <td>${esc(t.description)}</td>
+          <td>
+            <span class="tag ${t.type === 'In' ? 'ok' : 'bad'}">
+              ${t.type === 'In' ? 'IN (+)' : 'OUT (-)'}
+            </span>
+          </td>
+          <td style="color:${t.type === 'In' ? 'var(--ok)' : 'var(--bad)'}; font-weight:bold;">
+            ${rs(t.amount)}
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="4" style="text-align:center; color:var(--mute);">No transactions yet.</td></tr>'}
+    </table>
+  </div>
+  `;
+
+  renderApp('My Wallet', html);
+}
+
+loadMyWallet();
+</script>
+</body>
+</html>

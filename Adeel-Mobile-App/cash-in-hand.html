@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cash in Hand - Adeel Mobile</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+
+function loadCashBook(){
+  // Cashbook data (agar purana data hai jisme cashbook nahi hai to empty array le lein)
+  const cb = D.cashbook || [];
+
+  // Totals Calculate
+  let totalIn = 0;
+  let totalOut = 0;
+
+  cb.forEach(t => {
+    if(t.type === 'In') totalIn += t.amount;
+    if(t.type === 'Out') totalOut += t.amount;
+  });
+
+  const balance = totalIn - totalOut;
+
+  // Transactions ko newest pehle show karna
+  const sortedCB = cb.slice().sort((a,b) => b.date - a.date);
+
+  let html = `
+  <div class="top">
+    <h2>Cash in Hand</h2>
+  </div>
+  
+  <div class="grid">
+    <div class="stat">
+      <small>Current Balance</small>
+      <b style="color:${balance >= 0 ? 'var(--ok)' : 'var(--bad)'}">${rs(balance)}</b>
+    </div>
+    <div class="stat">
+      <small>Total Cash In</small>
+      <b style="color:var(--ok)">${rs(totalIn)}</b>
+    </div>
+    <div class="stat">
+      <small>Total Cash Out</small>
+      <b style="color:var(--bad)">${rs(totalOut)}</b>
+    </div>
+  </div>
+
+  <h3 style="margin-bottom:8px; font-size:16px;">Transaction History</h3>
+  <div class="tw">
+    <table>
+      <tr>
+        <th>Date</th>
+        <th>Description</th>
+        <th>Type</th>
+        <th>Amount</th>
+      </tr>
+      ${sortedCB.map(t => `
+        <tr>
+          <td>${new Date(t.date).toLocaleDateString('en-GB')}</td>
+          <td>${esc(t.description)}</td>
+          <td>
+            <span class="tag ${t.type === 'In' ? 'ok' : 'bad'}">
+              ${t.type === 'In' ? 'IN (+)' : 'OUT (-)'}
+            </span>
+          </td>
+          <td style="color:${t.type === 'In' ? 'var(--ok)' : 'var(--bad)'}; font-weight:bold;">
+            ${rs(t.amount)}
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="4" style="text-align:center; color:var(--mute)">No transactions yet.</td></tr>'}
+    </table>
+  </div>
+  `;
+
+  renderApp('Cash in Hand', html);
+}
+
+loadCashBook();
+</script>
+</body>
+</html>

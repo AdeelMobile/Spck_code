@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Customers - Adeel Mobile</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+
+function loadMyCustomers(){
+  // Sirf is user ki sales uthana
+  const mySales = D.sales.filter(s => s.userId === me.id);
+  
+  // Customers ko phone number ke zariye group karna
+  const customerMap = {};
+  
+  mySales.forEach(s => {
+    if(!customerMap[s.cphone]) {
+      customerMap[s.cphone] = { name: s.cname, phone: s.cphone, totalSales: 0, totalAmount: 0, lastSale: 0 };
+    }
+    customerMap[s.cphone].totalSales += 1;
+    customerMap[s.cphone].totalAmount += s.total;
+    customerMap[s.cphone].lastSale = Math.max(customerMap[s.cphone].lastSale, s.date);
+  });
+
+  const customers = Object.values(customerMap).sort((a,b) => b.lastSale - a.lastSale);
+
+  let html = `
+  <div class="top">
+    <h2>My Customers</h2>
+  </div>
+  
+  <div class="tw">
+    <table>
+      <tr>
+        <th>Customer Name</th>
+        <th>Phone</th>
+        <th>Total Sales</th>
+        <th>Total Amount</th>
+        <th>Last Sale</th>
+      </tr>
+      ${customers.map(c => `
+        <tr>
+          <td><b>${esc(c.name)}</b></td>
+          <td>${esc(c.phone)}</td>
+          <td>${c.totalSales}</td>
+          <td>${rs(c.totalAmount)}</td>
+          <td>${new Date(c.lastSale).toLocaleDateString('en-GB')}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--mute);">No customers found.</td></tr>'}
+    </table>
+  </div>
+  `;
+
+  renderApp('My Customers', html);
+}
+
+loadMyCustomers();
+</script>
+</body>
+</html>

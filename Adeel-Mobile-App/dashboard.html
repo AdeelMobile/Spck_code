@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard - Adeel Mobile</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+// Agar login nahi hai to direct login page pe bhej dega
+if(!me) window.location.href='index.html';
+
+function loadDashboard(){
+  const A = me.role==='admin';
+  const S = A ? D.sales : D.sales.filter(s=>s.userId===me.id);
+  const tot = S.reduce((a,s)=>a+s.total,0);
+  const got = S.reduce((a,s)=>a+paid(s),0);
+  
+  // Last 6 months chart
+  const now = new Date(), ms=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(), now.getMonth()-i, 1);
+    ms.push({l:d.toLocaleString('en',{month:'short'}), k:d.getFullYear()+'-'+d.getMonth(), v:0});
+  }
+  S.forEach(s=>{
+    const d=new Date(s.date), m=ms.find(x=>x.k==d.getFullYear()+'-'+d.getMonth());
+    if(m) m.v+=s.total;
+  });
+  const mx = Math.max(...ms.map(m=>m.v), 1);
+
+  let tgt = '';
+  if(!A && me.target){
+    tgt = `<div class="stat"><small>Sale Target</small><b>${rs(me.target)}</b></div>
+           <div class="stat"><small>Achieved</small><b style="color:var(--ok)">${rs(tot)} (${Math.round(tot/me.target*100)}%)</b></div>`;
+  }
+
+  // Buttons ko condition ke sath set kiya gaya hai (Admin ke liye dono, User ke liye sirf Verification)
+  let buttonsHtml = `
+    ${A ? `<a href="new-sale.html" class="btn">Create Sale</a>` : ''}
+    <a href="verifications.html?tab=Submit" class="btn sec">Create Verification</a>
+  `;
+
+  let html = `
+  <div class="top" style="flex-wrap: wrap;">
+    <h2>${A?'Admin Dashboard':'My Dashboard'}</h2>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      ${buttonsHtml}
+    </div>
+  </div>
+  
+  <div class="grid">
+    ${A?`<div class="stat"><small>Users</small><b>${D.users.length-1}</b></div>
+         <div class="stat"><small>Phones in stock</small><b>${D.products.reduce((a,p)=>a+p.stock,0)}</b></div>`:''}
+    <div class="stat"><small>Total sales</small><b>${S.length}</b></div>
+    <div class="stat"><small>Sale value</small><b>${rs(tot)}</b></div>
+    <div class="stat"><small>Received</small><b style="color:var(--ok)">${rs(got)}</b></div>
+    <div class="stat"><small>Remaining</small><b style="color:var(--bad)">${rs(tot-got)}</b></div>
+    ${tgt}
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <h3 style="font-size:15px">Last 6 months sales</h3>
+    <div class="bars" style="display:flex;gap:10px;align-items:flex-end;height:130px;padding:8px 4px">
+      ${ms.map(m=>`<div style="flex:1;text-align:center;font-size:11px;color:var(--mute)">
+        <i style="display:block;background:var(--pri);border-radius:6px 6px 0 0;margin-bottom:4px;height:${Math.max(m.v/mx*100,2)}px"></i>${m.l}
+      </div>`).join('')}
+    </div>
+  </div>
+  <h3 style="margin-bottom:8px;font-size:15px">Recent sales</h3>`;
+
+  // Recent 5 sales table
+  const recent = S.slice(-5).reverse();
+  html += `<div class="tw"><table><tr><th>Date</th>${A?'<th>User</th>':''}<th>Customer</th><th>Phone</th><th>Total</th><th>Paid</th><th>Remaining</th><th>Monthly</th></tr>
+  ${recent.map(s=>{
+    const u = D.users.find(x=>x.id==s.userId);
+    return `<tr>
+      <td>${new Date(s.date).toLocaleDateString('en-GB')}</td>
+      ${A?`<td>${esc(u?u.name:'-')}</td>`:''}
+      <td>${esc(s.cname)}<br><small style="color:var(--mute)">${esc(s.pname)}</small></td>
+      <td>${esc(s.cphone)}</td>
+      <td>${rs(s.total)}</td>
+      <td>${rs(paid(s))}</td>
+      <td>${rs(s.total-paid(s))}</td>
+      <td>${rs(s.monthly)} x ${s.months}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" style="color:var(--mute)">No sales yet.</td></tr>'}
+  </table></div>`;
+
+  renderApp('Dashboard', html);
+}
+
+// Page load hone par dashboard render karein
+loadDashboard();
+</script>
+</body>
+</html>

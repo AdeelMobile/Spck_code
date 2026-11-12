@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Adeel Mobile – Installment Store</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;--bg:#fff;--panel:#f6f8fb;--line:#e4e8ef;--ink:#1b2430;--mute:#6b7686;--pri:#1a56db;--pri2:#e8effd;--ok:#12805c;--bad:#c62828;--warn:#b26a00;--card:#fff;--g1:#fff;--g2:#eef3fd;--fh:Poppins,Roboto,Calibri,sans-serif;--fb:Roboto,Calibri,"Segoe UI",sans-serif;--fs:15px;--cols:2;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--fb);font-size:var(--fs)}
+h1,h2,h3,.brand{font-family:var(--fh);margin:0}
+button,input,select,textarea{font-family:inherit;font-size:calc(var(--fs) - 1px)}
+.btn{background:var(--pri);color:#fff;border:0;border-radius:8px;padding:9px 16px;cursor:pointer;font-weight:500}
+.btn.sec{background:var(--pri2);color:var(--pri)}.btn.red{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}.btn.sm{padding:5px 10px;font-size:13px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+label{display:block;font-size:12.5px;color:var(--mute);margin:10px 0 4px;font-weight:500}
+.login{min-height:100vh;display:grid;place-items:center;padding:16px;background:linear-gradient(180deg,var(--g1),var(--g2))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px}
+.login .card{width:100%;max-width:380px;box-shadow:0 10px 30px rgba(26,86,219,.08)}
+.app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+.side{background:var(--panel);border-right:1px solid var(--line);padding:18px 12px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:4px}
+.brand{font-size:18px;color:var(--pri);padding:4px 10px 14px}
+.nav{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;padding:10px 12px;border-radius:8px;cursor:pointer;color:var(--ink);font-weight:500}
+.nav.on{background:var(--pri);color:#fff}.nav:hover:not(.on){background:var(--pri2)}
+.who{margin-top:auto;font-size:13px;color:var(--mute);padding:10px}
+.main{padding:22px;min-width:0}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.stat small{color:var(--mute);display:block}.stat b{font-family:var(--fh);font-size:20px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:var(--panel);font-size:12.5px;color:var(--mute);text-transform:uppercase;letter-spacing:.03em}
+.tag{padding:3px 9px;border-radius:99px;font-size:12px;font-weight:500}
+.tag.ok{background:color-mix(in srgb,var(--ok) 15%,transparent);color:var(--ok)}.tag.warn{background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn)}.tag.bad{background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad)}
+.bars{display:flex;gap:10px;align-items:flex-end;height:130px;padding:8px 4px}
+.bars div{flex:1;text-align:center;font-size:11px;color:var(--mute)}.bars i{display:block;background:var(--pri);border-radius:6px 6px 0 0;margin-bottom:4px}
+.cat{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:14px}
+.ph{background:var(--card);min-width:0;overflow-wrap:anywhere;border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.ph .img{height:140px;border-radius:10px;background:var(--panel) center/contain no-repeat;display:grid;place-items:center;font-size:44px}
+.ov{position:fixed;inset:0;background:rgba(20,30,50,.45);display:grid;place-items:center;padding:14px;z-index:50}
+.md{background:var(--card);border-radius:14px;padding:20px;width:100%;max-width:440px;max-height:90vh;overflow:auto}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.calc{background:var(--pri2);border-radius:10px;padding:12px;margin-top:12px;color:var(--pri)}
+.pub{max-width:1000px;margin:0 auto;padding:20px}
+.hint{font-size:12px;color:var(--mute);margin-top:10px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.tab{padding:8px 16px;border-radius:20px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-weight:500;color:var(--ink)}
+.tab.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+@media(max-width:800px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;height:auto;width:270px;max-width:82vw;z-index:40;transform:translateX(-100%);transition:transform .25s;padding-top:calc(18px + env(safe-area-inset-top,0px));overflow-y:auto}.side.open{transform:none;box-shadow:0 0 40px rgba(0,0,0,.3)}.app .mbar{display:flex}.scrim.open{display:block}.main{padding:14px}.ph{padding:10px}.ph .img{height:100px;font-size:34px}.cat{gap:10px}}
+/* Fixed Mobile Top Bar */ .mbar{display:none;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--card);position:fixed;top:0;left:0;right:0;z-index:100} .mbar b{font-family:var(--fh);color:var(--pri);font-size:17px;margin:0} .burger{background:var(--pri2);color:var(--pri);border:0;border-radius:8px;width:42px;height:42px;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center} .scrim{display:none;position:fixed;inset:0;background:rgba(20,30,50,.45);z-index:35} .scrim.open{display:block}  /* Mobile Fixes */ @media(max-width:800px){   .app{grid-template-columns:1fr;padding-top:63px} /* 63px top space so content doesn't hide under fixed bar */   .side{position:fixed;left:0;top:0;bottom:0;height:auto;width:270px;max-width:82vw;z-index:40;transform:translateX(-100%);transition:transform .25s;padding-top:calc(18px + env(safe-area-inset-top,0px));overflow-y:auto}   .side.open{transform:none;box-shadow:0 0 40px rgba(0,0,0,.3)}   .main{padding:14px}   .ph{padding:10px}   .ph .img{height:100px;font-size:34px}   .cat{gap:10px} }
+.ths{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.th{display:flex;align-items:center;gap:6px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);cursor:pointer;font-size:13px}.th.on{border-color:var(--pri);box-shadow:0 0 0 2px var(--pri2)}.th i{width:16px;height:16px;border-radius:50%;border:1px solid var(--line);flex:none}
+</style>
+</head>
+<body>
+<div id="root"></div><div id="modal"></div>
+<script>
+const K='adeelmobile_v2',uid=()=>Math.random().toString(36).slice(2,9);
+const seed=()=>({settings:{shop:'Adeel Mobile',phone:'0321-4265688',addr:'411 Chowk Shalamar, Shalimar Link Road, Lahore',markup:20,theme:'classic',hf:'Poppins',bf:'Roboto',fs:15,cols:2},
+users:[{id:'u0',name:'Administrator',username:'admin',pass:'admin123',role:'admin',phone:'',active:true,biz:'',addr:'',target:0,brandMarkup:{}}],
+products:[{id:'p1',brand:'Samsung',name:'Galaxy A15 128GB',price:48000,stock:10,img:''},{id:'p2',brand:'Infinix',name:'Hot 40 Pro',price:42000,stock:8,img:''},{id:'p3',brand:'Tecno',name:'Spark 20',price:38000,stock:6,img:''},{id:'p4',brand:'Apple',name:'iPhone 13 128GB',price:165000,stock:3,img:''}],sales:[],verifications:[]});
+let D;try{D=JSON.parse(localStorage.getItem(K))}catch(e){}D=D||seed();
+if(!D.verifications)D.verifications=[];
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(D))}catch(e){}};
+D.settings={...seed().settings,...D.settings};
+const FONTS=['Roboto','Poppins','Open Sans','Lato','Montserrat','Inter','Nunito','Raleway','Ubuntu','Source Sans 3','Noto Sans','Work Sans','Mulish','Rubik','Quicksand','DM Sans','Manrope','Karla','Barlow','Josefin Sans','Cabin','Fira Sans','PT Sans','Oxygen','Heebo','Titillium Web','Kanit','Hind','Libre Franklin','IBM Plex Sans','Playfair Display','Merriweather','Lora','Roboto Slab','Noto Nastaliq Urdu','Calibri','Segoe UI','Arial','Verdana','Tahoma'],SYS=['Calibri','Segoe UI','Arial','Verdana','Tahoma'];
+const TH={classic:{n:'Classic Blue',pri:'#1a56db',pri2:'#e8effd',panel:'#f6f8fb',g2:'#eef3fd'},emerald:{n:'Emerald Green',pri:'#0f766e',pri2:'#e0f5f1',panel:'#f4faf8',g2:'#e3f4ef'},royal:{n:'Royal Purple',pri:'#6d28d9',pri2:'#efe8fd',panel:'#f8f6fd',g2:'#f0eafc'},sunset:{n:'Sunset Orange',pri:'#ea580c',pri2:'#ffefe5',panel:'#fdf7f3',g2:'#ffeee2'},rose:{n:'Rose Red',pri:'#e11d48',pri2:'#fde8ed',panel:'#fdf5f7',g2:'#fde7ec'},ocean:{n:'Ocean Sky',pri:'#0369a1',pri2:'#e0f2fb',panel:'#f3f9fc',g2:'#def0f9'},gold:{n:'Classic Gold',pri:'#b45309',pri2:'#fdf3dc',panel:'#fbf8f1',g2:'#fbf1d9'},midnight:{n:'Midnight Dark',dark:1,bg:'#0f172a',card:'#1e293b',panel:'#162033',line:'#2b3a55',ink:'#e5ebf5',mute:'#94a3b8',pri:'#3b82f6',pri2:'#1e3a5f',ok:'#34d399',bad:'#f87171',warn:'#fbbf24',g1:'#0f172a',g2:'#1e293b'}};
+function applyLook(){const s=D.settings,t=TH[s.theme]||TH.classic,r=document.documentElement.style,o={bg:'#fff',card:'#fff',ink:'#1b2430',mute:'#6b7686',line:'#e4e8ef',ok:'#12805c',bad:'#c62828',warn:'#b26a00',...t};
+['bg','card','panel','ink','mute','line','pri','pri2','ok','bad','warn'].forEach(k=>r.setProperty('--'+k,o[k]));r.setProperty('--g1',o.g1||o.bg);r.setProperty('--g2',o.g2||o.panel);r.setProperty('color-scheme',o.dark?'dark':'light');
+const ff=n=>'"'+n+'",Roboto,Calibri,sans-serif';r.setProperty('--fh',ff(s.hf));r.setProperty('--fb',ff(s.bf));r.setProperty('--fs',s.fs+'px');r.setProperty('--cols',s.cols);
+[s.hf,s.bf].forEach(n=>{const id='gf_'+n.replace(/ /g,'_');if(SYS.includes(n)||document.getElementById(id))return;const l=document.createElement('link');l.id=id;l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family='+n.replace(/ /g,'+')+':wght@400;700&display=swap';document.head.appendChild(l)})}
+const fopt=c=>FONTS.map(f=>`<option ${f==c?'selected':''}>${f}</option>`).join('');
+function setLook(k,x){D.settings[k]=x;save();applyLook();app()}
+let me=null,view='dash',vTab='Pending';
+try{const s=sessionStorage.getItem('am_s');if(s)me=D.users.find(u=>u.id===s&&u.active)||null}catch(e){}
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rs=n=>'Rs '+Math.round(n).toLocaleString('en-PK'),v=id=>$(id).value;
+const calc=(p,a,m,k)=>{const t=p*(1+k/100),r=Math.max(t-a,0);return{t,r,m:r/Math.max(m,1)}};
+const paid=s=>s.advance+s.payments.reduce((a,p)=>a+p.amt,0);
+const mySales=()=>me.role==='admin'?D.sales:D.sales.filter(s=>s.userId===me.id);
+const wa=n=>{n=String(n||D.settings.phone).replace(/\D/g,'');return n.startsWith('0')?'92'+n.slice(1):n};
+const status=s=>{const r=s.total-paid(s);return r<=0?'<span class="tag ok">Cleared</span>':paid(s)>s.advance?'<span class="tag warn">Running</span>':'<span class="tag bad">Pending</span>'};
+function modal(h){$('modal').innerHTML=h?`<div class="ov" onclick="if(event.target==this)modal()"><div class="md">${h}</div></div>`:''}
+function route(){const h=location.hash;if(h.startsWith('#store-'))return store(h.slice(7));if(!me)return login();app()}
+window.addEventListener('hashchange',route);
+
+function login(err){$('root').innerHTML=`<div class="login"><div class="card"><h1 style="color:var(--pri)">${esc(D.settings.shop)}</h1><p style="color:var(--mute);margin:4px 0 8px">Installment Mobile Store – Login</p>
+<label>Username</label><input id="lu" autocomplete="username"><label>Password</label><input id="lp" type="password" autocomplete="current-password" onkeydown="if(event.key=='Enter')doLogin()">
+<p style="color:var(--bad);min-height:18px;font-size:13px">${err||''}</p><button class="btn" style="width:100%" onclick="doLogin()">Login</button>
+<p class="hint">First time: admin / admin123 (login ke baad password badal lein).</p></div></div>`}
+function doLogin(){const u=D.users.find(x=>x.username===v('lu').trim()&&x.pass===v('lp'));if(!u)return login('Username ya password ghalat hai');if(!u.active)return login('Account disabled hai');me=u;view='dash';try{sessionStorage.setItem('am_s',u.id)}catch(e){}route()}
+function logout(){me=null;try{sessionStorage.removeItem('am_s')}catch(e){}route()}
+function go(x){view=x;app()}
+
+const IC={dash:'📊',users:'👥',products:'📦',sales:'🧾',new:'➕',settings:'⚙️',mystore:'🏬',verify:'✅',cust:'🤝'};
+function menu(o){const a=$('sd'),c=$('scr'),f=o===undefined?!a.classList.contains('open'):!!o;a.classList.toggle('open',f);c.classList.toggle('open',f)}
+function app(){const A=me.role==='admin';const nav=A?[['dash','Dashboard'],['users','Users'],['products','Products'],['verify','Verifications'],['cust','Customers'],['sales','All Sales'],['new','New Sale'],['settings','Settings']]:[['dash','Dashboard'],['new','New Sale'],['verify','Verifications'],['sales','My Sales'],['mystore','My Store']];
+$('root').innerHTML=`<div class="app"><div class="mbar"><button class="burger" onclick="menu()">☰</button><b>${esc(D.settings.shop)}</b></div><div class="scrim" id="scr" onclick="menu(0)"></div><aside class="side" id="sd"><div class="brand">${esc(D.settings.shop)}</div>${nav.map(n=>`<button class="nav ${view==n[0]?'on':''}" onclick="go('${n[0]}')"><span>${IC[n[0]]}</span>${n[1]}</button>`).join('')}<div class="who">${esc(me.name)} (${me.role})<br><button class="btn sec sm" style="margin-top:8px" onclick="logout()">Logout</button></div></aside><main class="main">${page()}</main></div>`}
+function page(){return({dash,users,products,sales,new:newSale,settings,mystore,verify,cust})[view]()}
+
+function dash(){const S=mySales(),tot=S.reduce((a,s)=>a+s.total,0),got=S.reduce((a,s)=>a+paid(s),0);
+const A=me.role==='admin',now=new Date(),ms=[];for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);ms.push({l:d.toLocaleString('en',{month:'short'}),k:d.getFullYear()+'-'+d.getMonth(),v:0})}
+S.forEach(s=>{const d=new Date(s.date),m=ms.find(x=>x.k==d.getFullYear()+'-'+d.getMonth());if(m)m.v+=s.total});const mx=Math.max(...ms.map(m=>m.v),1);
+const tgt=!A&&me.target?`<div class="stat"><small>Sale Target</small><b>${rs(me.target)}</b></div><div class="stat"><small>Achieved</small><b style="color:var(--ok)">${rs(tot)} (${Math.round(tot/me.target*100)}%)</b></div>`:'';
+return`<div class="top"><h2>${A?'Admin Dashboard':'My Dashboard'}</h2><button class="btn" onclick="go('new')">+ New Installment Sale</button></div>
+<div class="grid">${A?`<div class="stat"><small>Users</small><b>${D.users.length-1}</b></div><div class="stat"><small>Phones in stock</small><b>${D.products.reduce((a,p)=>a+p.stock,0)}</b></div>`:''}
+<div class="stat"><small>Total sales</small><b>${S.length}</b></div><div class="stat"><small>Sale value</small><b>${rs(tot)}</b></div><div class="stat"><small>Received</small><b style="color:var(--ok)">${rs(got)}</b></div><div class="stat"><small>Remaining</small><b style="color:var(--bad)">${rs(tot-got)}</b></div>${tgt}</div>
+<div class="card" style="margin-bottom:16px"><h3 style="font-size:15px">Last 6 months sales</h3><div class="bars">${ms.map(m=>`<div><i style="height:${Math.max(m.v/mx*100,2)}px"></i>${m.l}</div>`).join('')}</div></div>
+<h3 style="margin-bottom:8px;font-size:15px">Recent sales</h3>${saleTable(S.slice(-5).reverse())}`}
+
+function saleTable(S){const A=me.role==='admin';return`<div class="tw"><table><tr><th>Date</th>${A?'<th>User</th>':''}<th>Customer</th><th>Phone</th><th>Total</th><th>Paid</th><th>Remaining</th><th>Monthly</th><th>Status</th><th></th></tr>${S.map(s=>{const u=D.users.find(x=>x.id==s.userId);return`<tr><td>${new Date(s.date).toLocaleDateString('en-GB')}</td>${A?`<td>${esc(u?u.name:'-')}</td>`:''}<td>${esc(s.cname)}<br><small style="color:var(--mute)">${esc(s.pname)}</small></td><td>${esc(s.cphone)}</td><td>${rs(s.total)}</td><td>${rs(paid(s))}</td><td>${rs(s.total-paid(s))}</td><td>${rs(s.monthly)} x ${s.months}</td><td>${status(s)}</td><td><button class="btn sm sec" onclick="payM('${s.id}')">+ Payment</button> ${A?`<button class="btn sm red" onclick="delSale('${s.id}')">Del</button>`:''}</td></tr>`}).join('')||'<tr><td colspan="10" style="color:var(--mute)">Abhi koi sale nahi.</td></tr>'}</table></div>`}
+function sales(){let S=mySales().slice().reverse();const f=window._f;if(f)S=S.filter(s=>s.userId==f);
+return`<div class="top"><h2>${me.role==='admin'?'All Sales':'My Sales'}</h2>${me.role==='admin'?`<select style="width:200px" onchange="window._f=this.value;app()"><option value="">All users</option>${D.users.map(u=>`<option value="${u.id}" ${f==u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select>`:''}</div>${saleTable(S)}`}
+function payM(id){const s=D.sales.find(x=>x.id==id);modal(`<h3>Installment received</h3><p style="color:var(--mute)">${esc(s.cname)} – remaining ${rs(s.total-paid(s))}</p><label>Amount (Rs)</label><input id="pa" type="number" value="${Math.min(Math.round(s.monthly),Math.round(s.total-paid(s)))}"><div style="margin-top:14px;display:flex;gap:8px"><button class="btn" onclick="addPay('${id}')">Save</button><button class="btn sec" onclick="modal()">Cancel</button></div>`)}
+function addPay(id){const s=D.sales.find(x=>x.id==id),a=+v('pa');if(a>0){s.payments.push({date:Date.now(),amt:a});save()}modal();app()}
+function delSale(id){if(confirm('Sale delete karni hai?')){D.sales=D.sales.filter(s=>s.id!=id);save();app()}}
+
+function newSale(prefill){const P=D.products.filter(p=>p.stock>0);
+if(!P.length)return`<div class="top"><h2>New Installment Sale</h2></div><div class="card"><p style="color:var(--bad)">Stock me koi phone nahi hai. Pehle Products me phone add karein.</p></div>`;
+const firstP=P[0];const defK=firstP&&me.brandMarkup&&me.brandMarkup[firstP.brand]!=null?me.brandMarkup[firstP.brand]:D.settings.markup;
+return`<div class="top"><h2>New Installment Sale</h2></div><div class="card" style="max-width:520px"><label>Phone</label><select id="ns_p" onchange="const p=D.products.find(x=>x.id==this.value);if(p&&me.brandMarkup&&me.brandMarkup[p.brand]!=null)document.getElementById('ns_k').value=me.brandMarkup[p.brand];prev()">${P.map(p=>`<option value="${p.id}">${esc(p.brand+' '+p.name)} – ${rs(p.price)}</option>`).join('')}</select>
+<div class="row"><div><label>Customer name</label><input id="ns_n" value="${prefill?esc(prefill.name):''}"></div><div><label>Customer phone</label><input id="ns_t" value="${prefill?esc(prefill.phone):''}"></div></div>
+<div class="row"><div><label>Advance (Rs)</label><input id="ns_a" type="number" value="0" oninput="prev()"></div><div><label>Months</label><input id="ns_m" type="number" value="6" min="1" oninput="prev()"></div></div>
+<label>Profit / markup %</label><input id="ns_k" type="number" value="${defK}" oninput="prev()"><div class="calc" id="ns_c"></div>
+<button class="btn" style="margin-top:14px" onclick="saveSale()">Save Sale</button></div>`}
+function prev(){const p=D.products.find(x=>x.id==v('ns_p'));if(!p)return;const c=calc(p.price,+v('ns_a'),+v('ns_m'),+v('ns_k'));$('ns_c').innerHTML=`Total: <b>${rs(c.t)}</b><br>Remaining after advance: <b>${rs(c.r)}</b><br>Monthly installment: <b>${rs(c.m)}</b>`}
+function saveSale(){const p=D.products.find(x=>x.id==v('ns_p'));if(!p||!v('ns_n').trim())return alert('Customer name likhein');const a=+v('ns_a'),m=+v('ns_m'),k=+v('ns_k'),c=calc(p.price,a,m,k);
+D.sales.push({id:uid(),userId:me.id,productId:p.id,pname:p.brand+' '+p.name,cname:v('ns_n').trim(),cphone:v('ns_t').trim(),price:p.price,advance:a,months:m,markup:k,total:c.t,monthly:c.m,payments:[],date:Date.now()});p.stock--;save();view='sales';app()}
+
+// --- VERIFICATIONS LOGIC ---
+function verify(){
+  let V = me.role==='admin' ? D.verifications : D.verifications.filter(x=>x.userId===me.id);
+  const tabs = me.role==='admin' ? ['Pending','Approved','Rejected'] : ['Submit','Pending','Approved','Rejected'];
+  
+  if(me.role!=='admin' && vTab==='Submit'){
+    return `<div class="top"><h2>Verifications</h2></div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px">
+      <button class="btn" onclick="vTab='Submit';app()" style="padding:10px 20px;">Submit Verification</button>
+      <div class="tabs" style="margin:0">${['Pending','Approved','Rejected'].map(t=>`<button class="tab ${vTab==t?'on':''}" onclick="vTab='${t}';app()">${t}</button>`).join('')}</div>
+    </div>
+    <div class="card" style="max-width:480px">
+      <h3>Submit New Verification</h3>
+      <label>Customer Name</label><input id="v_n">
+      <label>Customer Phone</label><input id="v_p">
+      <label>Details / Notes (CNIC, etc)</label><textarea id="v_d" rows="3"></textarea>
+      <button class="btn" style="margin-top:14px" onclick="submitVerify()">Submit Request</button>
+    </div>`;
+  }
+
+  if(vTab!=='Submit') V = V.filter(x=>x.status===vTab);
+
+  return `<div class="top"><h2>Verifications</h2></div>
+  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px">
+    ${me.role!=='admin' ? `<button class="btn sec" onclick="vTab='Submit';app()" style="padding:10px 20px;">Submit Verification</button>` : ''}
+    <div class="tabs" style="margin:0">${tabs.filter(t=>t!=='Submit').map(t=>`<button class="tab ${vTab==t?'on':''}" onclick="vTab='${t}';app()">${t}</button>`).join('')}</div>
+  </div>
+  <div class="tw"><table><tr><th>Date</th>${me.role==='admin'?'<th>User</th>':''}<th>Customer</th><th>Phone</th><th>Details</th><th>Status</th><th>Action</th></tr>
+  ${V.slice().reverse().map(x=>{
+    const u = D.users.find(y=>y.id==x.userId);
+    let action = '';
+    if(me.role==='admin'){
+      if(x.status==='Pending') action = `<button class="btn sm" onclick="changeV('${x.id}','Approved')">Approve</button> <button class="btn sm red" onclick="changeV('${x.id}','Rejected')">Reject</button>`;
+      else if(x.status==='Approved') action = `<button class="btn sm sec" onclick="goCreateSale('${x.id}')">Create Sale</button>`;
+    } else {
+      if(x.status==='Approved') action = `<span class="tag ok">Ready for sale</span>`;
+    }
+    return `<tr><td>${new Date(x.date).toLocaleDateString('en-GB')}</td>${me.role==='admin'?`<td>${esc(u?u.name:'-')}</td>`:''}<td>${esc(x.cname)}</td><td>${esc(x.cphone)}</td><td>${esc(x.details)}</td><td><span class="tag ${x.status==='Approved'?'ok':x.status==='Rejected'?'bad':'warn'}">${x.status}</span></td><td>${action}</td></tr>`
+  }).join('')||'<tr><td colspan="7" style="color:var(--mute)">Koi record nahi.</td></tr>'}</table></div>`;
+}
+function submitVerify(){
+  if(!v('v_n').trim()||!v('v_p').trim()) return alert('Naam aur phone zaroori hain');
+  D.verifications.push({id:uid(),userId:me.id,cname:v('v_n').trim(),cphone:v('v_p').trim(),details:v('v_d').trim(),status:'Pending',date:Date.now()});
+  save(); vTab='Pending'; app();
+}
+function changeV(id,st){
+  const x = D.verifications.find(y=>y.id==id); if(x){x.status=st;save();app();}
+}
+function goCreateSale(id){
+  const x = D.verifications.find(y=>y.id==id);
+  if(x){ view='new'; app(); setTimeout(()=>{ if($('ns_n'))$('ns_n').value=x.cname; if($('ns_t'))$('ns_t').value=x.cphone; }, 50); }
+}
+
+// --- CUSTOMERS LOGIC ---
+function cust(){
+  const map = {};
+  D.sales.forEach(s=>{
+    if(!map[s.cphone]) map[s.cphone] = {name:s.cname,phone:s.cphone,sales:0,total:0,paid:0,last:0};
+    map[s.cphone].sales++;
+    map[s.cphone].total += s.total;
+    map[s.cphone].paid += paid(s);
+    map[s.cphone].last = Math.max(map[s.cphone].last, s.date);
+  });
+  const arr = Object.values(map).sort((a,b)=>b.last-a.last);
+  return `<div class="top"><h2>Customers</h2></div>
+  <div class="tw"><table><tr><th>Name</th><th>Phone</th><th>Total Sales</th><th>Total Amount</th><th>Paid</th><th>Remaining</th><th>Last Sale</th></tr>
+  ${arr.map(c=>`<tr><td>${esc(c.name)}</td><td>${esc(c.phone)}</td><td>${c.sales}</td><td>${rs(c.total)}</td><td>${rs(c.paid)}</td><td>${rs(c.total-c.paid)}</td><td>${new Date(c.last).toLocaleDateString('en-GB')}</td></tr>`).join('')||'<tr><td colspan="7" style="color:var(--mute)">Abhi koi customer nahi.</td></tr>'}</table></div>`;
+}
+
+function users(){const U=D.users.filter(u=>u.role!=='admin');
+return`<div class="top"><h2>Users</h2><button class="btn" onclick="userM()">+ Add User</button></div><div class="tw"><table><tr><th>Name</th><th>Business</th><th>Username</th><th>WhatsApp</th><th>Address</th><th>Target</th><th>Achieved</th><th>Sales</th><th>Status</th><th>Store link</th><th></th></tr>${U.map(u=>{const us=D.sales.filter(s=>s.userId==u.id);const ach=us.reduce((a,s)=>a+s.total,0);return`<tr><td>${esc(u.name)}</td><td>${esc(u.biz||'-')}</td><td>${esc(u.username)}</td><td>${esc(u.phone)}</td><td>${esc(u.addr||'-')}</td><td>${u.target?rs(u.target):'-'}</td><td>${rs(ach)}</td><td>${us.length}</td><td><span class="tag ${u.active?'ok':'bad'}">${u.active?'Active':'Disabled'}</span></td><td><a href="#store-${esc(u.username)}" target="_blank">#store-${esc(u.username)}</a></td><td><button class="btn sm sec" onclick="userM('${u.id}')">Edit</button> <button class="btn sm red" onclick="delUser('${u.id}')">Delete</button></td></tr>`}).join('')||'<tr><td colspan="11" style="color:var(--mute)">Koi user nahi. Add User dabayen.</td></tr>'}</table></div>`}
+function userM(id){const u=D.users.find(x=>x.id==id)||{name:'',username:'',pass:'',phone:'',active:true,biz:'',addr:'',target:0,brandMarkup:{}};
+const brands=[...new Set(D.products.map(p=>p.brand).filter(Boolean))];
+const bm=u.brandMarkup||{};
+modal(`<h3>${id?'Edit':'New'} User</h3>
+<label>Full name</label><input id="un" value="${esc(u.name)}">
+<label>Business name</label><input id="ub" value="${esc(u.biz||'')}">
+<label>Address</label><input id="uad" value="${esc(u.addr||'')}">
+<label>Username (letters/numbers only)</label><input id="uu" value="${esc(u.username)}">
+<label>Password</label><input id="up" value="${esc(u.pass)}">
+<label>WhatsApp number</label><input id="ut" value="${esc(u.phone)}">
+<label>Sale target (Rs)</label><input id="utg" type="number" value="${u.target||0}">
+<label>Status</label><select id="ua"><option value="1" ${u.active?'selected':''}>Active</option><option value="0" ${u.active?'':'selected'}>Disabled</option></select>
+<label style="margin-top:14px">Brand wise Profit % (khali chhoren to default ${D.settings.markup}% lagega)</label>
+<div class="row">${brands.map(b=>`<div><label style="margin:0 0 2px;font-size:11px">${esc(b)}</label><input id="bm_${esc(b).replace(/[^a-zA-Z0-9]/g,'_')}" type="number" placeholder="${D.settings.markup}" value="${bm[b]??''}"></div>`).join('')||'<p class="hint">Pehle Products me brand add karein.</p>'}</div>
+<div style="margin-top:14px;display:flex;gap:8px"><button class="btn" onclick="saveUser('${id||''}')">Save</button><button class="btn sec" onclick="modal()">Cancel</button></div>`)}
+function saveUser(id){const un=v('uu').trim().toLowerCase().replace(/[^a-z0-9]/g,'');if(!un||!v('up')||!v('un').trim())return alert('Name, username aur password zaroori hain');if(D.users.some(x=>x.username==un&&x.id!=id))return alert('Ye username pehle se maujood hai');
+const brands=[...new Set(D.products.map(p=>p.brand).filter(Boolean))];const brandMarkup={};
+brands.forEach(b=>{const inp=$('bm_'+b.replace(/[^a-zA-Z0-9]/g,'_'));if(inp&&inp.value!=='')brandMarkup[b]=+inp.value});
+const o={name:v('un').trim(),biz:v('ub').trim(),addr:v('uad').trim(),username:un,pass:v('up'),phone:v('ut').trim(),target:+v('utg')||0,brandMarkup,active:v('ua')=='1',role:'user'};
+if(id)Object.assign(D.users.find(x=>x.id==id),o);else D.users.push({id:uid(),...o});save();modal();app()}
+function delUser(id){if(confirm('User delete karna hai? Uski sales record me rahengi.')){D.users=D.users.filter(u=>u.id!=id);save();app()}}
+
+function products(){return`<div class="top"><h2>Products</h2><button class="btn" onclick="prodM()">+ Add Phone</button></div><div class="tw"><table><tr><th>Brand</th><th>Model</th><th>Cash price</th><th>Stock</th><th></th></tr>${D.products.map(p=>`<tr><td>${esc(p.brand)}</td><td>${esc(p.name)}</td><td>${rs(p.price)}</td><td>${p.stock}</td><td><button class="btn sm sec" onclick="prodM('${p.id}')">Edit</button> <button class="btn sm red" onclick="delProd('${p.id}')">Delete</button></td></tr>`).join('')}</table></div>`}
+function prodM(id){const p=D.products.find(x=>x.id==id)||{brand:'',name:'',price:'',stock:'',img:''};modal(`<h3>${id?'Edit':'New'} Phone</h3><div class="row"><div><label>Brand</label><input id="pb" value="${esc(p.brand)}"></div><div><label>Model</label><input id="pn" value="${esc(p.name)}"></div><div><label>Cash price</label><input id="pp" type="number" value="${p.price}"></div><div><label>Stock</label><input id="ps" type="number" value="${p.stock}"></div></div><label>Image URL (optional)</label><input id="pi" value="${esc(p.img)}"><div style="margin-top:14px;display:flex;gap:8px"><button class="btn" onclick="saveProd('${id||''}')">Save</button><button class="btn sec" onclick="modal()">Cancel</button></div>`)}
+function saveProd(id){const o={brand:v('pb').trim(),name:v('pn').trim(),price:+v('pp'),stock:+v('ps'),img:v('pi').trim()};if(!o.name||!o.price)return alert('Model aur price likhein');if(id)Object.assign(D.products.find(x=>x.id==id),o);else D.products.push({id:uid(),...o});save();modal();app()}
+function delProd(id){if(confirm('Phone delete karna hai?')){D.products=D.products.filter(p=>p.id!=id);save();app()}}
+
+function settings(){const s=D.settings;return`<div class="top"><h2>Settings</h2></div><div class="card" style="max-width:480px"><label>Shop name</label><input id="s1" value="${esc(s.shop)}"><label>Contact / WhatsApp</label><input id="s2" value="${esc(s.phone)}"><label>Address</label><input id="s3" value="${esc(s.addr)}"><label>Default markup % (installment profit)</label><input id="s4" type="number" value="${s.markup}"><label>Admin password</label><input id="s5" value="${esc(me.pass)}"><button class="btn" style="margin-top:14px" onclick="saveSet()">Save Settings</button>
+<button class="btn red" style="margin-top:14px;margin-left:8px" onclick="if(confirm('Sara data reset ho jayega!')){D=seed();save();applyLook();logout()}">Reset all data</button></div>
+<div class="card" style="max-width:480px;margin-top:16px"><h3 style="font-size:16px">Appearance</h3>
+<label>Theme template</label><div class="ths">${Object.keys(TH).map(k=>`<button class="th ${s.theme==k?'on':''}" onclick="setLook('theme','${k}')"><i style="background:${TH[k].pri}"></i><i style="background:${TH[k].panel||TH[k].bg}"></i>${TH[k].n}</button>`).join('')}</div>
+<label>Heading font</label><select onchange="setLook('hf',this.value)">${fopt(s.hf)}</select>
+<label>Body font</label><select onchange="setLook('bf',this.value)">${fopt(s.bf)}</select>
+<label>Font size (px)</label><select onchange="setLook('fs',+this.value)">${[12,13,14,15,16,17,18,19,20].map(n=>`<option ${s.fs==n?'selected':''}>${n}</option>`).join('')}</select>
+<label>Product cards per row</label><select onchange="setLook('cols',+this.value)">${[1,2,3,4].map(n=>`<option ${s.cols==n?'selected':''}>${n}</option>`).join('')}</select>
+<p class="hint">Tabdeeli foran lagu hoti hai aur khud save ho jati hai. Google fonts ke liye internet chahiye.</p></div>
+<div class="card" style="max-width:480px;margin-top:16px"><h3 style="font-size:16px">Backup / Restore</h3><p class="hint" style="margin-top:6px">Data sirf isi browser/jagah me save hota hai. Dusri jagah ya naye file address par data khali dikhega, isliye backup zaroor rakhein.</p>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm" onclick="bkDl()">Download backup</button><button class="btn sm sec" onclick="bkCopy()">Copy backup text</button></div>
+<label>Backup text (yahan paste karein ya file chunen)</label><textarea id="bk" rows="5" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)"></textarea>
+<input type="file" accept=".json,.txt" style="margin-top:8px" onchange="bkFile(this)"><button class="btn red" style="margin-top:10px" onclick="bkRestore()">Restore from backup</button></div>`}
+function bkDl(){try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(D)],{type:'application/json'}));a.download='adeel-mobile-backup.json';a.click()}catch(e){alert('Download nahi hua, Copy backup text istemal karein')}}
+function bkCopy(){$('bk').value=JSON.stringify(D);try{navigator.clipboard.writeText($('bk').value).then(()=>alert('Backup copy ho gaya'),()=>$('bk').select())}catch(e){$('bk').select()}}
+function bkFile(i){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('bk').value=r.result};r.readAsText(f)}
+function bkRestore(){try{const x=JSON.parse(v('bk'));if(!x.users||!x.products||!x.sales)throw 0;if(!confirm('Maujooda data replace ho jayega. Continue?'))return;D=x;D.settings={...seed().settings,...D.settings};if(!D.verifications)D.verifications=[];save();applyLook();logout()}catch(e){alert('Backup text sahi nahi hai')}}
+function saveSet(){Object.assign(D.settings,{shop:v('s1'),phone:v('s2'),addr:v('s3'),markup:+v('s4')||0});if(v('s5'))me.pass=v('s5');save();app();alert('Saved')}
+
+function mystore(){return`<div class="top"><h2>My Store</h2><a class="btn" href="#store-${esc(me.username)}" target="_blank" style="text-decoration:none">Open my store page</a></div><p class="hint" style="margin:0 0 14px">Aap ka store link: <b>#store-${esc(me.username)}</b> – customers yahan se aap ko WhatsApp par order bhejte hain.</p>${cat(me)}`}
+function cat(u){const n=wa(u.phone);return`<div class="cat">${D.products.filter(p=>p.stock>0).map(p=>{const c=calc(p.price,p.price*.3,6,D.settings.markup),msg=encodeURIComponent('Assalam o Alaikum, mujhe '+p.brand+' '+p.name+' installment par chahiye.');return`<div class="ph"><div class="img" style="${p.img?`background-image:url('${esc(p.img)}')`:''}">${p.img?'':'📱'}</div><small style="color:var(--mute)">${esc(p.brand)}</small><b>${esc(p.name)}</b><span>Cash: ${rs(p.price)}</span><span style="color:var(--pri);font-weight:500">${rs(c.m)} x 6 months</span><small style="color:var(--mute)">30% advance par</small><a class="btn sm" style="text-align:center;text-decoration:none" target="_blank" href="https://wa.me/${n}?text=${msg}">Order on WhatsApp</a></div>`}).join('')}</div>`}
+function store(name){const u=D.users.find(x=>x.username==name&&x.active);if(!u)return $('root').innerHTML='<div class="pub"><h2>Store not found</h2></div>';
+$('root').innerHTML=`<div class="pub"><div class="top"><div><h1 style="color:var(--pri)">${esc(D.settings.shop)}</h1><div style="color:var(--mute)">Dealer: ${esc(u.name)}${u.biz?' · '+esc(u.biz):''} · ${esc(D.settings.addr)}</div></div><div><b>${esc(u.phone||D.settings.phone)}</b></div></div><h3 style="margin:10px 0 14px">Mobile phones on easy installments</h3>${cat(u)}</div>`}
+applyLook();route();
+</script>
+</body>
+</html>

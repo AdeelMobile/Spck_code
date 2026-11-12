@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Verifications - Adeel Mobile</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  /* Custom Styling for Verifications Page */
+  .ver-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+  .ver-stat-card{background:var(--card);border-radius:16px;padding:20px 10px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.03);border:1px solid var(--line);cursor:pointer;transition:0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ver-stat-card:hover{border-color:var(--pri)}
+  .ver-stat-card.active{border-color:var(--pri);background:var(--pri2);box-shadow:0 0 0 1px var(--pri)}
+  
+  .ver-stat-card .icon{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;margin:0 auto 12px;font-size:22px}
+  .ver-stat-card .icon.pending{background:#fef3c7;color:#d97706}
+  .ver-stat-card .icon.approved{background:#d1fae5;color:#059669}
+  .ver-stat-card .icon.rejected{background:#fee2e2;color:#dc2626}
+  
+  .ver-stat-card small{display:block;color:var(--mute);font-size:14px;font-weight:500;margin-bottom:4px;text-transform:none;letter-spacing:0}
+  .ver-stat-card b{font-size:24px;font-family:var(--fh);color:var(--ink);line-height:1}
+
+  .ver-search{width:100%;padding:14px 16px 14px 44px;border-radius:12px;border:1px solid var(--line);background:var(--card);margin-bottom:20px;font-size:15px;box-shadow:0 2px 8px rgba(0,0,0,0.02);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'%3E%3C/path%3E%3C/svg%3E");background-repeat:no-repeat;background-position:16px center;background-size:20px}
+
+  .ver-list-item{display:flex;align-items:flex-start;justify-content:space-between;background:var(--card);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,0.03);border:1px solid var(--line);flex-wrap:wrap;gap:12px}
+  .ver-list-left{display:flex;align-items:flex-start;gap:14px;flex:1}
+  .ver-avatar{width:50px;height:50px;border-radius:12px;background:var(--bg);display:grid;place-items:center;font-size:24px;flex-shrink:0}
+  .ver-info b{display:block;font-size:16px;color:var(--ink);margin-bottom:2px}
+  .ver-info small{display:block;color:var(--mute);font-size:13px;margin-bottom:6px}
+  .ver-details{font-size:14px;color:var(--ink);background:var(--bg);padding:8px 12px;border-radius:8px;margin-top:6px;word-break:break-word}
+  
+  .ver-status-badge{padding:6px 14px;border-radius:99px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;white-space:nowrap}
+  .ver-status-badge.pending{background:#fef3c7;color:#92400e}
+  .ver-status-badge.approved{background:#d1fae5;color:#065f46}
+  .ver-status-badge.rejected{background:#fee2e2;color:#991b1b}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+
+// URL se tab check karein (Dashboard se 'Submit' khulne ke liye)
+const urlParams = new URLSearchParams(window.location.search);
+let vTab = urlParams.get('tab') || 'Pending';
+let searchQuery = '';
+
+function loadVerifications(){
+  let V = me.role==='admin' ? D.verifications : D.verifications.filter(x=>x.userId===me.id);
+  
+  const cPending = V.filter(x=>x.status==='Pending').length;
+  const cApproved = V.filter(x=>x.status==='Approved').length;
+  const cRejected = V.filter(x=>x.status==='Rejected').length;
+
+  if(searchQuery){
+    const q = searchQuery.toLowerCase();
+    V = V.filter(x => x.cname.toLowerCase().includes(q) || x.cphone.includes(q) || (x.details && x.details.toLowerCase().includes(q)));
+  }
+
+  // Agar "Submit" tab par hai
+  if(me.role!=='admin' && vTab==='Submit'){
+    let html = `<div class="top"><h2>Verifications</h2></div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px">
+      <button class="btn" onclick="vTab='Submit';loadVerifications()" style="padding:10px 20px;">Submit Verification</button>
+      <div style="display:flex;gap:8px;">
+        ${['Pending','Approved','Rejected'].map(t=>`<button class="btn sec" onclick="vTab='${t}';loadVerifications()" style="padding:10px 20px;">${t}</button>`).join('')}
+      </div>
+    </div>
+    <div class="card" style="max-width:480px">
+      <h3>Submit New Verification</h3>
+      <label>Customer Name</label><input id="v_n" placeholder="Enter customer name">
+      <label>Customer Phone</label><input id="v_p" placeholder="03xx-xxxxxxx">
+      <label>Details / Notes (CNIC, etc)</label><textarea id="v_d" rows="3" placeholder="Enter details here..."></textarea>
+      <button class="btn" style="margin-top:16px; width:100%" onclick="submitVerify()">Submit Request</button>
+    </div>`;
+    return renderApp('Verifications', html);
+  }
+
+  let html = `<div class="top"><h2>Verifications</h2>
+    ${me.role!=='admin' ? `<button class="btn sec" onclick="vTab='Submit';loadVerifications()">+ New Submit</button>` : ''}
+  </div>
+  
+  <div class="ver-stats">
+    <div class="ver-stat-card ${vTab==='Pending'?'active':''}" onclick="vTab='Pending';loadVerifications()">
+      <div class="icon pending">⏳</div>
+      <small>Pending</small>
+      <b>${cPending}</b>
+    </div>
+    <div class="ver-stat-card ${vTab==='Approved'?'active':''}" onclick="vTab='Approved';loadVerifications()">
+      <div class="icon approved">✅</div>
+      <small>Approved</small>
+      <b>${cApproved}</b>
+    </div>
+    <div class="ver-stat-card ${vTab==='Rejected'?'active':''}" onclick="vTab='Rejected';loadVerifications()">
+      <div class="icon rejected">❌</div>
+      <small>Rejected</small>
+      <b>${cRejected}</b>
+    </div>
+  </div>
+
+  <input type="text" class="ver-search" placeholder="Search customer, phone or details..." value="${esc(searchQuery)}" oninput="searchQuery=this.value;loadVerifications()">
+  `;
+
+  if(vTab!=='Submit') V = V.filter(x=>x.status===vTab);
+
+  html += V.slice().reverse().map(x=>{
+    const u = D.users.find(y=>y.id==x.userId);
+    let actionBtn = '';
+    
+    if(me.role==='admin'){
+      if(x.status==='Pending') {
+        actionBtn = `<div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn sm" onclick="changeV('${x.id}','Approved')">Approve</button>
+          <button class="btn sm red" onclick="changeV('${x.id}','Rejected')">Reject</button>
+        </div>`;
+      }
+      else if(x.status==='Approved') {
+        // Check karein ke ye verification sale ho chuki hai ya nahi
+        if(x.used) {
+          actionBtn = `<div style="margin-top:12px"><span class="tag ok">Sale Completed</span></div>`;
+        } else {
+          actionBtn = `<div style="margin-top:12px"><a href="new-sale.html" class="btn sm sec" style="text-decoration:none">Create Sale</a></div>`;
+        }
+      }
+    }
+
+    return `<div class="ver-list-item">
+      <div class="ver-list-left">
+        <div class="ver-avatar">📱</div>
+        <div class="ver-info">
+          <b>${esc(x.cname)}</b>
+          <small>${esc(x.cphone)} ${me.role==='admin'?`• Agent: <b>${esc(u?u.name:'-')}</b>`:''}</small>
+          ${x.details ? `<div class="ver-details">${esc(x.details)}</div>` : ''}
+          ${actionBtn}
+        </div>
+      </div>
+      <div class="ver-status-badge ${x.status.toLowerCase()}">
+        ${x.status==='Pending'?'⏳ Pending':(x.status==='Approved'?'✅ Approved':'❌ Rejected')}
+      </div>
+    </div>`;
+  }).join('') || '<div style="text-align:center;padding:40px;color:var(--mute);font-size:15px;">No records found for this status.</div>';
+
+  renderApp('Verifications', html);
+}
+
+function submitVerify(){
+  if(!v('v_n').trim() || !v('v_p').trim()) return alert('Name and phone are required');
+  D.verifications.push({id:uid(), userId:me.id, cname:v('v_n').trim(), cphone:v('v_p').trim(), details:v('v_d').trim(), status:'Pending', date:Date.now()});
+  save(); vTab='Pending'; searchQuery=''; loadVerifications();
+}
+
+function changeV(id,st){
+  const x = D.verifications.find(y=>y.id==id); 
+  if(x){ x.status=st; save(); loadVerifications(); }
+}
+
+loadVerifications();
+</script>
+</body>
+</html>

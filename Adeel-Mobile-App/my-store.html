@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Store - Adeel Mobile</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+
+function loadWebsitePage(){
+  const isAdmin = me.role === 'admin';
+  const storeUrl = window.location.origin + window.location.pathname.replace('my-store.html', 'store.html') + '?user=' + me.username;
+
+  let html = `
+  <div class="top">
+    <h2>${isAdmin ? 'Store Control Panel' : 'My Store'}</h2>
+    <a href="dashboard.html" class="btn">Go to Dashboard</a>
+  </div>
+  `;
+
+  if(isAdmin) {
+    html += `
+    <div class="grid">
+      <div class="stat"><small>Website Status</small><b style="color:var(--ok)">Active</b></div>
+      <div class="stat"><small>Total Products Live</small><b>${D.products.filter(p=>p.stock>0).length}</b></div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <h3 style="margin-bottom:10px;">Your Store Link</h3>
+      <div style="background:var(--bg); padding:15px; border-radius:10px; margin-bottom:15px; word-break:break-all; border:1px solid var(--line); font-weight:bold; color:var(--pri);">${storeUrl}</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn sec" onclick="copyLink('${storeUrl}')">Copy Link</button>
+        <a href="store.html?user=${esc(me.username)}" target="_blank" class="btn">Open Live Store</a>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:15px;">Store Settings</h3>
+      <label>Store Title / Shop Name</label><input id="web_title" value="${esc(D.settings.shop)}">
+      <label>Contact / WhatsApp Number</label><input id="web_phone" value="${esc(D.settings.phone)}">
+      <label>Store Address</label><input id="web_addr" value="${esc(D.settings.addr)}">
+      <button class="btn" style="margin-top:15px;" onclick="saveWebSettings()">Save Settings</button>
+    </div>`;
+  } else {
+    html += `
+    <div class="card" style="text-align:center; padding:40px 20px;">
+      <div style="font-size:50px; margin-bottom:15px;">🌐</div>
+      <h3 style="margin-bottom:10px;">Your Store is Ready!</h3>
+      <p style="color:var(--mute); margin-bottom:20px;">Share this link with customers to show your store and get WhatsApp orders.</p>
+      <div style="background:var(--bg); padding:15px; border-radius:10px; margin-bottom:20px; word-break:break-all; border:1px solid var(--line); font-weight:bold; color:var(--pri);">${storeUrl}</div>
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        <button class="btn sec" onclick="copyLink('${storeUrl}')">Copy Link</button>
+        <a href="store.html?user=${esc(me.username)}" target="_blank" class="btn">Open Store</a>
+      </div>
+    </div>`;
+  }
+  renderApp('My Store', html);
+}
+
+function copyLink(text){ try{ navigator.clipboard.writeText(text).then(() => alert('Link copied successfully!')); }catch(e){ alert('Failed to copy.'); } }
+function saveWebSettings(){ D.settings.shop = v('web_title').trim(); D.settings.phone = v('web_phone').trim(); D.settings.addr = v('web_addr').trim(); save(); alert('Store settings saved!'); loadWebsitePage(); }
+loadWebsitePage();
+</script>
+</body>
+</html>

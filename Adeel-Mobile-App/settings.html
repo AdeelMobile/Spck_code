@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Settings - Adeel Mobile</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+if(me.role!=='admin') window.location.href='dashboard.html';
+
+// --- THEMES & FONTS DATA ---
+const TH={
+  classic:{n:'Classic Blue',pri:'#1a56db',pri2:'#e8effd',panel:'#f6f8fb',g2:'#eef3fd'},
+  emerald:{n:'Emerald Green',pri:'#0f766e',pri2:'#e0f5f1',panel:'#f4faf8',g2:'#e3f4ef'},
+  royal:{n:'Royal Purple',pri:'#6d28d9',pri2:'#efe8fd',panel:'#f8f6fd',g2:'#f0eafc'},
+  sunset:{n:'Sunset Orange',pri:'#ea580c',pri2:'#ffefe5',panel:'#fdf7f3',g2:'#ffeee2'},
+  rose:{n:'Rose Red',pri:'#e11d48',pri2:'#fde8ed',panel:'#fdf5f7',g2:'#fde7ec'},
+  ocean:{n:'Ocean Sky',pri:'#0369a1',pri2:'#e0f2fb',panel:'#f3f9fc',g2:'#def0f9'},
+  gold:{n:'Classic Gold',pri:'#b45309',pri2:'#fdf3dc',panel:'#fbf8f1',g2:'#fbf1d9'},
+  midnight:{n:'Midnight Dark',dark:1,bg:'#0f172a',card:'#1e293b',panel:'#162033',line:'#2b3a55',ink:'#e5ebf5',mute:'#94a3b8',pri:'#3b82f6',pri2:'#1e3a5f',ok:'#34d399',bad:'#f87171',warn:'#fbbf24',g1:'#0f172a',g2:'#1e293b'}
+};
+const FONTS=['Roboto','Poppins','Open Sans','Lato','Montserrat','Inter','Nunito','Raleway','Ubuntu','Source Sans 3','Noto Sans','Work Sans','Mulish','Rubik','Quicksand','DM Sans','Manrope','Karla','Barlow','Josefin Sans','Cabin','Fira Sans','PT Sans','Oxygen','Heebo','Titillium Web','Kanit','Hind','Libre Franklin','IBM Plex Sans','Playfair Display','Merriweather','Lora','Roboto Slab','Noto Nastaliq Urdu','Calibri','Segoe UI','Arial','Verdana','Tahoma'];
+const SYS=['Calibri','Segoe UI','Arial','Verdana','Tahoma'];
+const fopt=c=>FONTS.map(f=>`<option ${f==c?'selected':''}>${f}</option>`).join('');
+
+// --- APPLY LOOK ---
+function applyLook(){
+  const s = D.settings;
+  const t = TH[s.theme] || TH.classic;
+  const r = document.documentElement.style;
+  const o = {bg:'#fff', card:'#fff', ink:'#1b2430', mute:'#6b7686', line:'#e4e8ef', ok:'#12805c', bad:'#c62828', warn:'#b26a00', ...t};
+  
+  ['bg','card','panel','ink','mute','line','pri','pri2','ok','bad','warn'].forEach(k=>r.setProperty('--'+k,o[k]));
+  r.setProperty('--g1',o.g1||o.bg);
+  r.setProperty('--g2',o.g2||o.panel);
+  r.setProperty('color-scheme',o.dark?'dark':'light');
+  
+  const ff = n=>'"'+n+'",Roboto,Calibri,sans-serif';
+  r.setProperty('--fh',ff(s.hf||'Inter'));
+  r.setProperty('--fb',ff(s.bf||'Inter'));
+  
+  // Saare 4 Font Sizes apply karna
+  r.setProperty('--fs',(s.fs||15)+'px');       
+  r.setProperty('--hfs',(s.hfs||22)+'px');     
+  r.setProperty('--sfs',(s.sfs||18)+'px');     
+  r.setProperty('--lfs',(s.lfs||13)+'px');     
+  
+  r.setProperty('--cols',s.cols||2);
+
+  // Headings wale variables apply karna
+  r.setProperty('--head-case', s.headCase || 'none');
+  r.setProperty('--head-color', s.headColor || '#000000');
+  r.setProperty('--th-color', s.thColor || '#334155');
+  
+  [s.hf,s.bf].forEach(n=>{
+    if(!n) return;
+    const id='gf_'+n.replace(/ /g,'_');
+    if(SYS.includes(n) || document.getElementById(id)) return;
+    const l=document.createElement('link');
+    l.id=id; l.rel='stylesheet'; 
+    l.href='https://fonts.googleapis.com/css2?family='+n.replace(/ /g,'+')+':wght@400;700&display=swap';
+    document.head.appendChild(l);
+  });
+}
+
+function setLook(k, x){
+  D.settings[k] = x;
+  save();
+  applyLook();
+  loadSettings();
+}
+
+// --- LOAD SETTINGS PAGE ---
+function loadSettings(){
+  const s = D.settings;
+  
+  let html = `<div class="top"><h2>Settings</h2></div>
+  
+  <div class="card" style="max-width:480px">
+    <label>Shop name</label><input id="s1" value="${esc(s.shop)}">
+    <label>Contact / WhatsApp</label><input id="s2" value="${esc(s.phone)}">
+    <label>Address</label><input id="s3" value="${esc(s.addr)}">
+    <label>Default markup % (installment profit)</label><input id="s4" type="number" value="${s.markup}">
+    <label>Admin password</label><input id="s5" value="${esc(me.pass)}">
+    <button class="btn" style="margin-top:14px" onclick="saveSet()">Save Settings</button>
+    <button class="btn red" style="margin-top:14px;margin-left:8px" onclick="if(confirm('Sara data reset ho jayega!')){localStorage.removeItem(K); sessionStorage.removeItem('am_s'); window.location.href='index.html';}">Reset all data</button>
+  </div>
+  
+  <div class="card" style="max-width:480px;margin-top:16px">
+    <h3 style="font-size:16px">Appearance</h3>
+    
+    <label>Heading Style (Capital/Regular)</label>
+    <select onchange="setLook('headCase', this.value)">
+      <option value="none" ${s.headCase=='none'||!s.headCase?'selected':''}>Regular (Aa Bb Cc)</option>
+      <option value="uppercase" ${s.headCase=='uppercase'?'selected':''}>CAPITAL (AA BB CC)</option>
+    </select>
+
+    <label>Heading & Table Text Color</label>
+    <select onchange="setLook('headColor', this.value); setLook('thColor', this.value);">
+      <option value="#000000" ${s.headColor=='#000000'||!s.headColor?'selected':''}>Pure Black (Default)</option>
+      <option value="#1e293b" ${s.headColor=='#1e293b'?'selected':''}>Dark Slate</option>
+      <option value="#2563eb" ${s.headColor=='#2563eb'?'selected':''}>Brand Blue</option>
+      <option value="#0f766e" ${s.headColor=='#0f766e'?'selected':''}>Emerald Green</option>
+      <option value="#6d28d9" ${s.headColor=='#6d28d9'?'selected':''}>Royal Purple</option>
+      <option value="#b45309" ${s.headColor=='#b45309'?'selected':''}>Classic Gold</option>
+    </select>
+
+    <label style="margin-top:16px">Theme template</label>
+    <div class="ths" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+      ${Object.keys(TH).map(k=>`<button class="th ${s.theme==k?'on':''}" onclick="setLook('theme','${k}')" style="display:flex;align-items:center;gap:6px;padding:8px;border:1px solid ${s.theme==k?'var(--pri)':'var(--line)'};border-radius:10px;background:var(--card);color:var(--ink);cursor:pointer;font-size:13px">
+        <i style="width:16px;height:16px;border-radius:50%;border:1px solid var(--line);flex:none;background:${TH[k].pri}"></i>
+        <i style="width:16px;height:16px;border-radius:50%;border:1px solid var(--line);flex:none;background:${TH[k].panel||TH[k].bg}"></i>
+        ${TH[k].n}
+      </button>`).join('')}
+    </div>
+    
+    <label>Heading font</label>
+    <select onchange="setLook('hf',this.value)">${fopt(s.hf||'Inter')}</select>
+    
+    <label>Body font</label>
+    <select onchange="setLook('bf',this.value)">${fopt(s.bf||'Inter')}</select>
+
+    <div style="background:var(--pri2);padding:12px;border-radius:10px;margin-top:16px;margin-bottom:16px;">
+      <h4 style="margin:0 0 10px 0;color:var(--pri);font-size:14px;">Font Sizes Control</h4>
+      
+      <label style="margin-top:8px">Main Heading Size (px)</label>
+      <select onchange="setLook('hfs',+this.value)">
+        ${[18,20,22,24,26,28,30].map(n=>`<option ${(s.hfs||22)==n?'selected':''}>${n}</option>`).join('')}
+      </select>
+
+      <label>Card / Sub Heading Size (px)</label>
+      <select onchange="setLook('sfs',+this.value)">
+        ${[14,16,18,20,22].map(n=>`<option ${(s.sfs||18)==n?'selected':''}>${n}</option>`).join('')}
+      </select>
+
+      <label>Normal Body Text Size (px)</label>
+      <select onchange="setLook('fs',+this.value)">
+        ${[12,13,14,15,16,17,18].map(n=>`<option ${(s.fs||15)==n?'selected':''}>${n}</option>`).join('')}
+      </select>
+
+      <label>Labels & Small Text Size (px)</label>
+      <select onchange="setLook('lfs',+this.value)">
+        ${[10,11,12,13,14,15].map(n=>`<option ${(s.lfs||13)==n?'selected':''}>${n}</option>`).join('')}
+      </select>
+    </div>
+    
+    <label>Product cards per row</label>
+    <select onchange="setLook('cols',+this.value)">
+      ${[1,2,3,4].map(n=>`<option ${s.cols==n?'selected':''}>${n}</option>`).join('')}
+    </select>
+    <p class="hint">Tabdeeli foran lagu hoti hai aur khud save ho jati hai.</p>
+  </div>
+  
+  <div class="card" style="max-width:480px;margin-top:16px">
+    <h3 style="font-size:16px">Backup / Restore</h3>
+    <p class="hint" style="margin-top:6px">Data isi browser me save hota hai. Backup zaroor rakhein.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn sm" onclick="bkDl()">Download backup</button>
+      <button class="btn sm sec" onclick="bkCopy()">Copy backup text</button>
+    </div>
+    <label>Backup text (paste karein ya file chunen)</label>
+    <textarea id="bk" rows="5" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)"></textarea>
+    <input type="file" accept=".json,.txt" style="margin-top:8px" onchange="bkFile(this)">
+    <button class="btn red" style="margin-top:10px" onclick="bkRestore()">Restore from backup</button>
+  </div>`;
+
+  renderApp('Settings', html);
+}
+
+// --- SAVE & BACKUP FUNCTIONS ---
+function saveSet(){
+  Object.assign(D.settings, {shop:v('s1'), phone:v('s2'), addr:v('s3'), markup:+v('s4')||0});
+  if(v('s5')) me.pass = v('s5');
+  save(); alert('Saved'); loadSettings();
+}
+
+function bkDl(){
+  try{
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(D)], {type:'application/json'}));
+    a.download = 'adeel-mobile-backup.json';
+    a.click();
+  }catch(e){alert('Download nahi hua');}
+}
+
+function bkCopy(){
+  $('bk').value = JSON.stringify(D);
+  try{navigator.clipboard.writeText($('bk').value).then(()=>alert('Copy ho gaya'));}catch(e){$('bk').select();}
+}
+
+function bkFile(i){
+  const f = i.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{ $('bk').value = r.result; };
+  r.readAsText(f);
+}
+
+function bkRestore(){
+  try{
+    const x = JSON.parse(v('bk'));
+    if(!x.users || !x.products || !x.sales) throw 0;
+    if(!confirm('Data replace ho jayega. Continue?')) return;
+    D = x; D.settings = {...seed().settings, ...D.settings};
+    if(!D.verifications) D.verifications = [];
+    save(); applyLook(); alert('Restore ho gaya! Dobara login karein.'); logout();
+  }catch(e){alert('Backup text sahi nahi hai');}
+}
+
+applyLook();
+loadSettings();
+</script>
+</body>
+</html>

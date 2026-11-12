@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sales - Adeel Mobile</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+
+let filterUserId = '';
+
+function loadSales(){
+  let S = me.role==='admin' ? D.sales : D.sales.filter(s=>s.userId===me.id);
+  S = S.slice().reverse();
+  if(filterUserId) S = S.filter(s=>s.userId==filterUserId);
+
+  let html = `<div class="top">
+    <h2>${me.role==='admin'?'All Sales':'My Sales'}</h2>
+    ${me.role==='admin'?`<select style="width:200px" onchange="filterUserId=this.value; loadSales()">
+      <option value="">All users</option>
+      ${D.users.map(u=>`<option value="${u.id}" ${filterUserId==u.id?'selected':''}>${esc(u.name)}</option>`).join('')}
+    </select>`:''}
+  </div>`;
+
+  html += `<div class="tw"><table><tr><th>Date</th>${me.role==='admin'?'<th>User</th>':''}<th>Customer</th><th>Phone</th><th>Total</th><th>Paid</th><th>Remaining</th><th>Monthly</th><th>Status</th><th></th></tr>
+  ${S.map(s=>{
+    const u = D.users.find(x=>x.id==s.userId);
+    const rem = s.total - paid(s);
+    const statTag = rem<=0 ? '<span class="tag ok">Cleared</span>' : (paid(s)>s.advance ? '<span class="tag warn">Running</span>' : '<span class="tag bad">Pending</span>');
+    return `<tr>
+      <td>${new Date(s.date).toLocaleDateString('en-GB')}</td>
+      ${me.role==='admin'?`<td>${esc(u?u.name:'-')}</td>`:''}
+      <td>${esc(s.cname)}<br><small style="color:var(--mute)">${esc(s.pname)}</small></td>
+      <td>${esc(s.cphone)}</td>
+      <td>${rs(s.total)}</td>
+      <td>${rs(paid(s))}</td>
+      <td>${rs(rem)}</td>
+      <td>${rs(s.monthly)} x ${s.months}</td>
+      <td>${statTag}</td>
+      <td>
+        <button class="btn sm sec" onclick="payM('${s.id}')">+ Payment</button>
+        ${me.role==='admin'?`<button class="btn sm red" onclick="delSale('${s.id}')">Del</button>`:''}
+      </td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="10" style="color:var(--mute)">Abhi koi sale nahi.</td></tr>'}</table></div>`;
+
+  renderApp('Sales', html);
+}
+
+function payM(id){
+  const s = D.sales.find(x=>x.id==id);
+  modal(`<h3>Installment received</h3>
+  <p style="color:var(--mute)">${esc(s.cname)} – remaining ${rs(s.total-paid(s))}</p>
+  <label>Amount (Rs)</label>
+  <input id="pa" type="number" value="${Math.min(Math.round(s.monthly), Math.round(s.total-paid(s)))}">
+  <div style="margin-top:14px;display:flex;gap:8px">
+    <button class="btn" onclick="addPay('${id}')">Save</button>
+    <button class="btn sec" onclick="modal()">Cancel</button>
+  </div>`);
+}
+
+function addPay(id){
+  const s = D.sales.find(x=>x.id==id), a = +v('pa');
+  if(a>0){ s.payments.push({date:Date.now(), amt:a}); save(); }
+  modal(); loadSales();
+}
+
+function delSale(id){
+  if(confirm('Sale delete karni hai?')){
+    D.sales = D.sales.filter(s=>s.id!=id);
+    save(); loadSales();
+  }
+}
+
+loadSales();
+</script>
+</body>
+</html>
