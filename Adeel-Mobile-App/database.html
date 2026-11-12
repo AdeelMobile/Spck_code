@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Database - Adeel Mobile</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  /* Top Buttons (Tabs) */
+  .db-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 15px; scrollbar-width: none; }
+  .db-tabs::-webkit-scrollbar { display: none; }
+  .db-tab-btn {
+    background: #fff; border: 1px solid var(--line); color: var(--ink);
+    padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    white-space: nowrap; cursor: pointer; transition: 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .db-tab-btn:hover { border-color: var(--pri); }
+  .db-tab-btn.active { background: var(--pri); color: #fff; border-color: var(--pri); }
+
+  /* Panels */
+  .db-panel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+  .db-panel.active { display: block; }
+  
+  .db-panel h3 { font-size: 16px; color: var(--ink); margin-bottom: 15px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+
+  /* Brands List */
+  .brand-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+  .brand-tag { background: var(--pri2); color: var(--pri); padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .brand-tag span { cursor: pointer; color: var(--bad); font-size: 16px; line-height: 1; }
+
+  /* Search Bar */
+  .db-search { width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); margin-bottom: 15px; font-size: 14px; outline: none; }
+  .db-search:focus { border-color: var(--pri); }
+
+  /* Product List for Price Update */
+  .price-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; }
+  .price-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); cursor: pointer; transition: 0.2s; }
+  .price-item:hover { border-color: var(--pri); background: #fff; }
+  .price-item-info b { display: block; font-size: 14px; color: var(--ink); }
+  .price-item-info small { display: block; font-size: 12px; color: var(--mute); margin-top: 2px; }
+  .price-item-amount { font-weight: 700; color: var(--pri); font-size: 15px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+if(me.role!=='admin') window.location.href='dashboard.html';
+
+let currentTab = 'brand'; // Default tab
+let priceSearch = '';
+
+function getBrands() { return [...new Set(D.products.map(p => p.brand))]; }
+
+function loadDatabase() {
+  const brands = getBrands();
+
+  let html = `
+  <div class="top"><h2>Master Database</h2></div>
+  
+  <!-- Top Tabs (Buttons) -->
+  <div class="db-tabs">
+    <button class="db-tab-btn ${currentTab==='brand'?'active':''}" onclick="switchTab('brand')">🏷️ Add Brand</button>
+    <button class="db-tab-btn ${currentTab==='model'?'active':''}" onclick="switchTab('model')">📱 Add Model</button>
+    <button class="db-tab-btn ${currentTab==='bulk'?'active':''}" onclick="switchTab('bulk')">📦 Bulk Upload</button>
+    <button class="db-tab-btn ${currentTab==='price'?'active':''}" onclick="switchTab('price')">💰 Price Update</button>
+  </div>
+
+  <!-- 1. Add Brand Panel -->
+  <div class="db-panel ${currentTab==='brand'?'active':''}">
+    <h3>Add New Brand</h3>
+    <div style="display:flex; gap:10px;">
+      <input id="new_brand" placeholder="e.g. Samsung, Apple">
+      <button class="btn" onclick="addBrand()">Add</button>
+    </div>
+    <div class="brand-list">
+      ${brands.map(b => `<div class="brand-tag">${esc(b)} <span onclick="deleteBrand('${esc(b)}')">×</span></div>`).join('')}
+    </div>
+  </div>
+
+  <!-- 2. Add Model Panel -->
+  <div class="db-panel ${currentTab==='model'?'active':''}">
+    <h3>Add New Model & Variant</h3>
+    <label>Select Brand</label>
+    <select id="m_brand">
+      ${brands.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('') || '<option value="">No brands added yet</option>'}
+    </select>
+    <label>Model Name</label>
+    <input id="m_name" placeholder="e.g. Galaxy A15">
+    <label>Variant (RAM/Storage)</label>
+    <input id="m_variant" placeholder="e.g. 8GB/128GB">
+    <label>Price (Rs)</label>
+    <input id="m_price" type="number" placeholder="0">
+    <label>Image URL (Optional)</label>
+    <input id="m_img" placeholder="https://...">
+    <label>Specifications</label>
+    <textarea id="m_specs" rows="3" placeholder="e.g. 6.5 inch screen, 50MP Camera..."></textarea>
+    <button class="btn" style="margin-top:15px; width:100%" onclick="addModel()">Save Model</button>
+  </div>
+
+  <!-- 3. Bulk Upload Panel -->
+  <div class="db-panel ${currentTab==='bulk'?'active':''}">
+    <h3>Bulk Upload</h3>
+    <label>Bulk Images (Paste Image URLs, 1 per line)</label>
+    <textarea id="bulk_imgs" rows="4" placeholder="https://img1.jpg&#10;https://img2.jpg&#10;https://img3.jpg"></textarea>
+    
+    <label style="margin-top:10px;">Bulk Specs (Separate each block with --- )</label>
+    <textarea id="bulk_specs" rows="4" placeholder="Specs for Model 1&#10;---&#10;Specs for Model 2&#10;---&#10;Specs for Model 3"></textarea>
+    
+    <button class="btn sec" style="margin-top:15px; width:100%; border: 2px dashed var(--warn); color: var(--warn);" onclick="bulkUpload()">Process Bulk Data</button>
+    <p class="hint" style="margin-top:8px; text-align:center;">Will auto-apply to recent models without images/specs.</p>
+  </div>
+
+  <!-- 4. Price Update Panel -->
+  <div class="db-panel ${currentTab==='price'?'active':''}">
+    <h3>Price Updates</h3>
+    <input type="text" class="db-search" id="searchPrice" placeholder="Search model name..." oninput="priceSearch=this.value; loadDatabase()" value="${esc(priceSearch)}">
+    
+    <div class="price-list">
+      ${D.products
+        .filter(p => (p.brand + ' ' + p.name).toLowerCase().includes(priceSearch.toLowerCase()))
+        .map(p => `
+        <div class="price-item" onclick="editPricePopup('${p.id}')">
+          <div class="price-item-info">
+            <b>${esc(p.brand)} ${esc(p.name)}</b>
+            <small>Variant: ${esc(p.variant || 'N/A')}</small>
+          </div>
+          <div class="price-item-amount">${rs(p.price)}</div>
+        </div>
+      `).join('') || '<p style="text-align:center; color:var(--mute);">No models found.</p>'}
+    </div>
+  </div>
+
+  `;
+
+  renderApp('Database', html);
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  loadDatabase();
+}
+
+// --- Actions ---
+
+function addBrand() {
+  const b = v('new_brand').trim();
+  if(!b) return alert('Please enter a brand name');
+  if(getBrands().includes(b)) return alert('This brand already exists');
+  
+  D.products.push({ id: uid(), brand: b, name: 'Temp', price: 0, stock: 0, variant: '', specs: '', img: '' });
+  save();
+  loadDatabase();
+}
+
+function deleteBrand(brand) {
+  if(confirm(`Delete brand "${brand}" and all its models?`)) {
+    D.products = D.products.filter(p => p.brand !== brand);
+    save();
+    loadDatabase();
+  }
+}
+
+function addModel() {
+  const brand = v('m_brand');
+  const name = v('m_name').trim();
+  const variant = v('m_variant').trim();
+  const price = +v('m_price');
+  const img = v('m_img').trim();
+  const specs = v('m_specs').trim();
+
+  if(!brand || !name || price <= 0) return alert('Please fill Brand, Model Name and Price');
+
+  D.products.push({
+    id: uid(), brand: brand, name: name, variant: variant,
+    price: price, img: img, specs: specs, stock: 0
+  });
+  
+  save();
+  alert('Model saved successfully!');
+  loadDatabase();
+}
+
+// Bulk Upload Logic
+function bulkUpload() {
+  const imgsText = v('bulk_imgs').trim();
+  const specsText = v('bulk_specs').trim();
+
+  if(!imgsText && !specsText) return alert('Please paste data to bulk upload.');
+
+  const imgs = imgsText ? imgsText.split('\n').map(i => i.trim()).filter(i => i) : [];
+  const specs = specsText ? specsText.split('---').map(s => s.trim()).filter(s => s) : [];
+
+  let appliedCount = 0;
+  for(let i=0; i<D.products.length; i++) {
+    let p = D.products[i];
+    if(imgs.length > 0 && !p.img) { p.img = imgs.shift(); appliedCount++; }
+    if(specs.length > 0 && !p.specs) { p.specs = specs.shift(); appliedCount++; }
+    if(imgs.length === 0 && specs.length === 0) break;
+  }
+
+  if(appliedCount > 0) {
+    save();
+    alert(`${appliedCount} items updated via bulk upload!`);
+    loadDatabase();
+  } else {
+    alert('No empty products to apply this data to.');
+  }
+}
+
+// Price Update Popup
+function editPricePopup(id) {
+  const p = D.products.find(x => x.id === id);
+  if(!p) return;
+
+  let html = `
+    <h3>Update Price</h3>
+    <p style="color:var(--mute); margin-bottom:15px;">${esc(p.brand)} ${esc(p.name)} (${esc(p.variant || 'N/A')})</p>
+    <label>New Price (Rs)</label>
+    <input id="upd_price" type="number" value="${p.price}">
+    <div style="margin-top:20px; display:flex; gap:10px;">
+      <button class="btn" onclick="saveNewPrice('${p.id}')">Save Price</button>
+      <button class="btn sec" onclick="modal()">Cancel</button>
+    </div>
+  `;
+  modal(html);
+}
+
+function saveNewPrice(id) {
+  const p = D.products.find(x => x.id === id);
+  const newPrice = +v('upd_price');
+  if(p && newPrice > 0) {
+    p.price = newPrice;
+    save();
+    modal();
+    loadDatabase();
+  } else {
+    alert('Please enter a valid price.');
+  }
+}
+
+loadDatabase();
+</script>
+</body>
+</html>

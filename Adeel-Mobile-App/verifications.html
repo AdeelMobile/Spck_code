@@ -42,7 +42,6 @@
 <script>
 if(!me) window.location.href='index.html';
 
-// URL se tab check karein (Dashboard se 'Submit' khulne ke liye)
 const urlParams = new URLSearchParams(window.location.search);
 let vTab = urlParams.get('tab') || 'Pending';
 let searchQuery = '';
@@ -70,9 +69,21 @@ function loadVerifications(){
     </div>
     <div class="card" style="max-width:480px">
       <h3>Submit New Verification</h3>
-      <label>Customer Name</label><input id="v_n" placeholder="Enter customer name">
-      <label>Customer Phone</label><input id="v_p" placeholder="03xx-xxxxxxx">
-      <label>Details / Notes (CNIC, etc)</label><textarea id="v_d" rows="3" placeholder="Enter details here..."></textarea>
+      <label>Customer Name</label><input id="v_n" placeholder="Enter full name">
+      <label>Customer WhatsApp</label><input id="v_p" placeholder="03xx-xxxxxxx">
+      
+      <label>ID Card Front Image (URL)</label>
+      <input id="v_front" placeholder="Paste front image link here">
+      
+      <label>ID Card Back Image (URL)</label>
+      <input id="v_back" placeholder="Paste back image link here">
+      
+      <label>Have you taken any online loan?</label>
+      <select id="v_loan">
+        <option value="No">No</option>
+        <option value="Yes">Yes</option>
+      </select>
+
       <button class="btn" style="margin-top:16px; width:100%" onclick="submitVerify()">Submit Request</button>
     </div>`;
     return renderApp('Verifications', html);
@@ -100,7 +111,7 @@ function loadVerifications(){
     </div>
   </div>
 
-  <input type="text" class="ver-search" placeholder="Search customer, phone or details..." value="${esc(searchQuery)}" oninput="searchQuery=this.value;loadVerifications()">
+  <input type="text" class="ver-search" placeholder="Search customer or phone..." value="${esc(searchQuery)}" oninput="searchQuery=this.value;loadVerifications()">
   `;
 
   if(vTab!=='Submit') V = V.filter(x=>x.status===vTab);
@@ -117,7 +128,6 @@ function loadVerifications(){
         </div>`;
       }
       else if(x.status==='Approved') {
-        // Check karein ke ye verification sale ho chuki hai ya nahi
         if(x.used) {
           actionBtn = `<div style="margin-top:12px"><span class="tag ok">Sale Completed</span></div>`;
         } else {
@@ -126,13 +136,25 @@ function loadVerifications(){
       }
     }
 
+    // Show images and loan details if they exist
+    let extraDetails = '';
+    if(x.frontImg || x.backImg) {
+      extraDetails += `<div style="margin-top:6px; display:flex; gap:10px;">`;
+      if(x.frontImg) extraDetails += `<a href="${esc(x.frontImg)}" target="_blank" style="font-size:12px; color:var(--pri); text-decoration:underline;">View Front ID</a>`;
+      if(x.backImg) extraDetails += `<a href="${esc(x.backImg)}" target="_blank" style="font-size:12px; color:var(--pri); text-decoration:underline;">View Back ID</a>`;
+      extraDetails += `</div>`;
+    }
+    if(x.loan) {
+      extraDetails += `<div style="margin-top:4px; font-size:12px; color:${x.loan==='Yes'?'var(--bad)':'var(--ok)'};"><b>Online Loan:</b> ${esc(x.loan)}</div>`;
+    }
+
     return `<div class="ver-list-item">
       <div class="ver-list-left">
         <div class="ver-avatar">📱</div>
         <div class="ver-info">
           <b>${esc(x.cname)}</b>
           <small>${esc(x.cphone)} ${me.role==='admin'?`• Agent: <b>${esc(u?u.name:'-')}</b>`:''}</small>
-          ${x.details ? `<div class="ver-details">${esc(x.details)}</div>` : ''}
+          ${extraDetails}
           ${actionBtn}
         </div>
       </div>
@@ -147,8 +169,23 @@ function loadVerifications(){
 
 function submitVerify(){
   if(!v('v_n').trim() || !v('v_p').trim()) return alert('Name and phone are required');
-  D.verifications.push({id:uid(), userId:me.id, cname:v('v_n').trim(), cphone:v('v_p').trim(), details:v('v_d').trim(), status:'Pending', date:Date.now()});
-  save(); vTab='Pending'; searchQuery=''; loadVerifications();
+  
+  D.verifications.push({
+    id: uid(), 
+    userId: me.id, 
+    cname: v('v_n').trim(), 
+    cphone: v('v_p').trim(), 
+    frontImg: v('v_front').trim(),
+    backImg: v('v_back').trim(),
+    loan: v('v_loan'),
+    status: 'Pending', 
+    date: Date.now()
+  });
+  
+  save(); 
+  vTab='Pending'; 
+  searchQuery=''; 
+  loadVerifications();
 }
 
 function changeV(id,st){

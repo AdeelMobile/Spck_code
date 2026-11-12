@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sales - Adeel Mobile</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  /* Top Buttons (Tabs) */
+  .sale-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 15px; scrollbar-width: none; }
+  .sale-tabs::-webkit-scrollbar { display: none; }
+  .sale-tab-btn {
+    background: #fff; border: 1px solid var(--line); color: var(--ink);
+    padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    white-space: nowrap; cursor: pointer; transition: 0.2s;
+  }
+  .sale-tab-btn:hover { border-color: var(--pri); }
+  .sale-tab-btn.active { background: var(--pri); color: #fff; border-color: var(--pri); }
+
+  /* Panels */
+  .sale-panel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+  .sale-panel.active { display: block; }
+  
+  .sale-panel h3 { font-size: 16px; color: var(--ink); margin-bottom: 15px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+
+  /* Search Filters */
+  .filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+  .filter-row input { flex: 1; min-width: 150px; }
+
+  /* Table */
+  .tw { margin-top: 10px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+if(me.role!=='admin') window.location.href='dashboard.html';
+
+let currentTab = 'invoice'; // Default tab
+let selectedCustomer = null;
+let searchQuery = '';
+let filterDate = '';
+
+function loadSales() {
+  const mySales = D.sales; // Admin sab dekhta hai
+  
+  let html = `
+  <div class="top"><h2>Sales Management</h2></div>
+  
+  <!-- Top Buttons (Tabs) -->
+  <div class="sale-tabs">
+    <button class="sale-tab-btn ${currentTab==='invoice'?'active':''}" onclick="switchTab('invoice')">🧾 Create Invoice</button>
+    <button class="sale-tab-btn ${currentTab==='search'?'active':''}" onclick="switchTab('search')">🔍 Search Engine</button>
+    <button class="sale-tab-btn ${currentTab==='performance'?'active':''}" onclick="switchTab('performance')">📈 Sale Performance</button>
+    <button class="sale-tab-btn ${currentTab==='report'?'active':''}" onclick="switchTab('report')">📊 Sale Report</button>
+  </div>
+
+  <!-- 1. Create Invoice Panel -->
+  <div class="sale-panel ${currentTab==='invoice'?'active':''}">
+    <h3>Create New Invoice</h3>
+    <label>Phone</label>
+    <select id="s_phone">
+      <option value="">-- Select Phone --</option>
+      ${D.products.filter(p => p.stock > 0).map(p => `<option value="${p.id}">${esc(p.brand)} ${esc(p.name)} (${esc(p.variant || '')}) – ${rs(p.price)} (Stock: ${p.stock})</option>`).join('')}
+    </select>
+    
+    <label style="margin-top:15px;">Customer (Verification Required)</label>
+    <button class="btn sec" style="width:100%; margin-bottom:10px;" onclick="showApprovedCustomers()">Select Approved Customer</button>
+    
+    <div class="row">
+      <div><input id="s_cname" value="${selectedCustomer ? esc(selectedCustomer.cname) : ''}" placeholder="Customer Name" readonly style="background:var(--bg);"></div>
+      <div><input id="s_cphone" value="${selectedCustomer ? esc(selectedCustomer.cphone) : ''}" placeholder="Customer Phone" readonly style="background:var(--bg);"></div>
+    </div>
+
+    <div class="row">
+      <div><label>Advance (Rs)</label><input id="s_advance" type="number" value="0"></div>
+      <div><label>Months</label><input id="s_months" type="number" value="6" min="1"></div>
+    </div>
+
+    <label>Profit / Markup %</label>
+    <input id="s_markup" type="number" value="${D.settings.markup}">
+
+    <button class="btn" style="margin-top:15px; width:100%" onclick="saveSale()">Create Invoice</button>
+  </div>
+
+  <!-- 2. Search Engine Panel -->
+  <div class="sale-panel ${currentTab==='search'?'active':''}">
+    <h3>Search Sales</h3>
+    <div class="filter-row">
+      <input type="text" id="searchInput" placeholder="Search by customer name or phone..." oninput="searchQuery=this.value; loadSales()" value="${esc(searchQuery)}">
+      <input type="date" id="dateInput" onchange="filterDate=this.value; loadSales()" value="${filterDate}">
+    </div>
+    
+    ${renderSalesTable(mySales.filter(s => {
+      const matchSearch = s.cname.toLowerCase().includes(searchQuery.toLowerCase()) || s.cphone.includes(searchQuery);
+      const matchDate = filterDate ? new Date(s.date).toISOString().split('T')[0] === filterDate : true;
+      return matchSearch && matchDate;
+    }))}
+  </div>
+
+  <!-- 3. Sale Performance Panel -->
+  <div class="sale-panel ${currentTab==='performance'?'active':''}">
+    <h3>Sale Performance</h3>
+    ${D.users.filter(u => u.role !== 'admin').map(u => {
+      const userSales = mySales.filter(s => s.userId === u.id);
+      const totalSaleValue = userSales.reduce((sum, s) => sum + s.total, 0);
+      return `
+        <div style="border:1px solid var(--line); padding:12px; border-radius:10px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <b style="display:block; font-size:14px;">${esc(u.name)}</b>
+            <small style="color:var(--mute);">Total Sales: ${userSales.length}</small>
+          </div>
+          <div style="font-weight:700; color:var(--pri); font-size:15px;">${rs(totalSaleValue)}</div>
+        </div>
+      `;
+    }).join('')}
+  </div>
+
+  <!-- 4. Sale Report Panel -->
+  <div class="sale-panel ${currentTab==='report'?'active':''}">
+    <h3>Sale Report (Latest 20)</h3>
+    ${renderSalesTable(mySales.slice().reverse().slice(0, 20))}
+  </div>
+  `;
+
+  renderApp('Sales', html);
+}
+
+// Helper Function: Table Renderer
+function renderSalesTable(list) {
+  return `
+    <div class="tw"><table>
+      <tr>
+        <th>Date</th>
+        <th>Customer</th>
+        <th>Phone Model</th>
+        <th>Total Price</th>
+        <th>Advance</th>
+        <th>Monthly</th>
+        <th>Agent</th>
+      </tr>
+      ${list.map(s => {
+        const u = D.users.find(x => x.id === s.userId);
+        return `
+          <tr>
+            <td>${new Date(s.date).toLocaleDateString('en-GB')}</td>
+            <td>${esc(s.cname)}<br><small style="color:var(--mute);">${esc(s.cphone)}</small></td>
+            <td>${esc(s.pname)}</td>
+            <td>${rs(s.total)}</td>
+            <td>${rs(s.advance)}</td>
+            <td>${rs(s.monthly)}</td>
+            <td>${esc(u ? u.name : '-')}</td>
+          </tr>
+        `;
+      }).join('') || '<tr><td colspan="7" style="text-align:center; color:var(--mute);">No sales found.</td></tr>'}
+    </table></div>
+  `;
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  loadSales();
+}
+
+function showApprovedCustomers() {
+  const approved = D.verifications.filter(v => v.status === 'Approved' && !v.used);
+  let listHtml = `<h3>Select Customer</h3>
+  <div style="max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-top:10px;">`;
+  
+  if(approved.length === 0) {
+    listHtml += `<p style="color:var(--mute);">No approved customers found.</p>`;
+  } else {
+    approved.forEach(v => {
+      listHtml += `
+        <div style="border:1px solid var(--line); padding:12px; border-radius:8px; cursor:pointer;" onclick="selectCustomer('${v.id}')">
+          <b>${esc(v.cname)}</b><br><small>${esc(v.cphone)}</small>
+        </div>
+      `;
+    });
+  }
+  listHtml += `</div><div style="margin-top:15px; text-align:right;"><button class="btn sec" onclick="modal()">Close</button></div>`;
+  modal(listHtml);
+}
+
+function selectCustomer(id) {
+  selectedCustomer = D.verifications.find(v => v.id === id);
+  modal();
+  loadSales(); 
+}
+
+function saveSale() {
+  const pid = v('s_phone');
+  const p = D.products.find(x => x.id === pid);
+  
+  if(!p) return alert('Please select a phone');
+  if(!selectedCustomer) return alert('Please select an approved customer');
+  if(p.stock <= 0) return alert('This phone is out of stock');
+
+  const advance = +v('s_advance') || 0;
+  const months = +v('s_months') || 1;
+  const markup = +v('s_markup') || 0;
+
+  const totalPrice = p.price * (1 + markup / 100);
+  const remaining = Math.max(totalPrice - advance, 0);
+  const monthly = remaining / months;
+
+  D.sales.push({
+    id: uid(), userId: me.id, productId: p.id, pname: p.brand + ' ' + p.name,
+    cname: selectedCustomer.cname, cphone: selectedCustomer.cphone,
+    price: p.price, advance: advance, months: months, markup: markup,
+    total: totalPrice, monthly: monthly, payments: [], date: Date.now()
+  });
+
+  p.stock--;
+  const v = D.verifications.find(x => x.id === selectedCustomer.id);
+  if(v) v.used = true;
+
+  save();
+  alert('Sale Created Successfully!');
+  selectedCustomer = null;
+  loadSales();
+}
+
+loadSales();
+</script>
+</body>
+</html>

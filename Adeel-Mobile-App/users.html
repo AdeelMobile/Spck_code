@@ -4,8 +4,35 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Users - Adeel Mobile</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<style>
+  /* Top Buttons (Tabs) */
+  .u-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 15px; scrollbar-width: none; }
+  .u-tabs::-webkit-scrollbar { display: none; }
+  .u-tab-btn {
+    background: #fff; border: 1px solid var(--line); color: var(--ink);
+    padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    white-space: nowrap; cursor: pointer; transition: 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .u-tab-btn:hover { border-color: var(--pri); }
+  .u-tab-btn.active { background: var(--pri); color: #fff; border-color: var(--pri); }
+
+  /* Panels */
+  .u-panel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+  .u-panel.active { display: block; }
+  
+  .u-panel h3 { font-size: 16px; color: var(--ink); margin-bottom: 15px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+
+  /* Users List (Card style) */
+  .user-card { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
+  .user-card:hover { border-color: var(--pri); background: #fff; }
+  .user-info b { display: block; font-size: 14px; color: var(--ink); }
+  .user-info small { display: block; font-size: 12px; color: var(--mute); margin-top: 2px; }
+  .user-status { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
+  .user-status.active { background: var(--ok); color: #fff; }
+  .user-status.blocked { background: var(--bad); color: #fff; }
+</style>
 </head>
 <body>
 <div id="root"></div>
@@ -15,96 +42,168 @@
 if(!me) window.location.href='index.html';
 if(me.role!=='admin') window.location.href='dashboard.html';
 
-function loadUsers(){
-  const U = D.users.filter(u=>u.role!=='admin');
+let currentTab = 'all'; // Default tab
+
+function loadUsers() {
+  const U = D.users.filter(u => u.role !== 'admin');
   
   let html = `
-  <div class="top">
-    <h2>Users</h2>
-    <button class="btn" onclick="userM()">+ Add User</button>
-  </div>
-  <div class="tw"><table>
-    <tr><th>Name</th><th>Business</th><th>Username</th><th>WhatsApp</th><th>Target</th><th>Achieved</th><th>Status</th><th></th></tr>
-    ${U.map(u=>{
-      const us = D.sales.filter(s=>s.userId==u.id);
-      const ach = us.reduce((a,s)=>a+s.total,0);
-      return `<tr>
-        <td>${esc(u.name)}</td>
-        <td>${esc(u.biz||'-')}</td>
-        <td>${esc(u.username)}</td>
-        <td>${esc(u.phone)}</td>
-        <td>${u.target?rs(u.target):'-'}</td>
-        <td>${rs(ach)}</td>
-        <td><span class="tag ${u.active?'ok':'bad'}">${u.active?'Active':'Disabled'}</span></td>
-        <td>
-          <button class="btn sm sec" onclick="userM('${u.id}')">Edit</button> 
-          <button class="btn sm red" onclick="delUser('${u.id}')">Delete</button>
-        </td>
-      </tr>`;
-    }).join('') || '<tr><td colspan="8" style="color:var(--mute)">Koi user nahi. Add User dabayen.</td></tr>'}
-  </table></div>`;
+  <div class="top"><h2>Users Management</h2></div>
   
+  <!-- Top Tabs (Buttons) with New Names -->
+  <div class="u-tabs">
+    <button class="u-tab-btn ${currentTab==='all'?'active':''}" onclick="switchTab('all')">👥 All Users</button>
+    <button class="u-tab-btn ${currentTab==='create'?'active':''}" onclick="switchTab('create')">➕ Create User</button>
+    <button class="u-tab-btn ${currentTab==='performance'?'active':''}" onclick="switchTab('performance')">📈 Users Performance</button>
+    <button class="u-tab-btn ${currentTab==='wallet'?'active':''}" onclick="switchTab('wallet')">💰 Wallet Balance</button>
+    <button class="u-tab-btn ${currentTab==='report'?'active':''}" onclick="switchTab('report')">📊 Users Sale Report</button>
+  </div>
+
+  <!-- 1. All Users Panel -->
+  <div class="u-panel ${currentTab==='all'?'active':''}">
+    <h3>All Users</h3>
+    ${U.map(u => `
+      <div class="user-card" onclick="editUser('${u.id}')">
+        <div class="user-info">
+          <b>${esc(u.name)}</b>
+          <small>Username: ${esc(u.username)} | Phone: ${esc(u.phone || '-')}</small>
+        </div>
+        <div class="user-status ${u.active ? 'active' : 'blocked'}">${u.active ? 'Active' : 'Blocked'}</div>
+      </div>
+    `).join('') || '<p style="text-align:center; color:var(--mute);">No users found.</p>'}
+  </div>
+
+  <!-- 2. Create User Panel -->
+  <div class="u-panel ${currentTab==='create'?'active':''}">
+    <h3>Create User</h3>
+    <label>Full Name</label>
+    <input id="u_name" placeholder="Enter name">
+    
+    <label>Username</label>
+    <input id="u_username" placeholder="Enter username">
+    
+    <label>Password</label>
+    <input id="u_pass" type="text" placeholder="Enter password">
+    
+    <label>Phone / WhatsApp</label>
+    <input id="u_phone" placeholder="03xx-xxxxxxx">
+    
+    <label>Business Name</label>
+    <input id="u_biz" placeholder="Shop name">
+    
+    <label>Address</label>
+    <input id="u_addr" placeholder="Address">
+    
+    <label>Monthly Target (Rs)</label>
+    <input id="u_target" type="number" placeholder="0">
+    
+    <button class="btn" style="margin-top:15px; width:100%" onclick="createUser()">Save User</button>
+  </div>
+
+  <!-- 3. Users Performance Panel -->
+  <div class="u-panel ${currentTab==='performance'?'active':''}">
+    <h3>Users Performance</h3>
+    ${U.map(u => {
+      const userSales = D.sales.filter(s => s.userId === u.id);
+      const ach = userSales.reduce((sum, s) => sum + s.total, 0);
+      const percent = u.target > 0 ? Math.round((ach / u.target) * 100) : 0;
+      return `
+      <div class="user-card">
+        <div class="user-info">
+          <b>${esc(u.name)}</b>
+          <small>Target: ${rs(u.target)} | Achieved: ${rs(ach)}</small>
+        </div>
+        <div class="user-status active">${percent}%</div>
+      </div>
+    `}).join('') || '<p style="text-align:center; color:var(--mute);">No users to show.</p>'}
+  </div>
+
+  <!-- 4. Wallet Balance Panel -->
+  <div class="u-panel ${currentTab==='wallet'?'active':''}">
+    <h3>Wallet Balance</h3>
+    ${U.map(u => {
+      const wallet = u.wallet || 0;
+      return `
+      <div class="user-card">
+        <div class="user-info">
+          <b>${esc(u.name)}</b>
+          <small>Username: ${esc(u.username)}</small>
+        </div>
+        <div class="user-status ${wallet > 0 ? 'active' : 'blocked'}">${rs(wallet)}</div>
+      </div>
+    `}).join('') || '<p style="text-align:center; color:var(--mute);">No users to show.</p>'}
+  </div>
+
+  <!-- 5. Users Sale Report Panel -->
+  <div class="u-panel ${currentTab==='report'?'active':''}">
+    <h3>Users Sale Report</h3>
+    ${U.map(u => {
+      const userSales = D.sales.filter(s => s.userId === u.id);
+      const totalSale = userSales.reduce((sum, s) => sum + s.total, 0);
+      return `
+      <div class="user-card">
+        <div class="user-info">
+          <b>${esc(u.name)}</b>
+          <small>Total Sales: ${rs(totalSale)}</small>
+        </div>
+        <div class="user-status active">${userSales.length} Sales</div>
+      </div>
+    `}).join('') || '<p style="text-align:center; color:var(--mute);">No sales data found.</p>'}
+  </div>
+
+  `;
+
   renderApp('Users', html);
 }
 
-function userM(id){
-  const u = D.users.find(x=>x.id==id) || {name:'',username:'',pass:'',phone:'',active:true,biz:'',addr:'',target:0,brandMarkup:{}};
-  const brands = [...new Set(D.products.map(p=>p.brand).filter(Boolean))];
-  const bm = u.brandMarkup || {};
-  
-  modal(`<h3>${id?'Edit':'New'} User</h3>
-  <label>Full name</label><input id="un" value="${esc(u.name)}">
-  <label>Business name</label><input id="ub" value="${esc(u.biz||'')}">
-  <label>Address</label><input id="uad" value="${esc(u.addr||'')}">
-  <label>Username</label><input id="uu" value="${esc(u.username)}">
-  <label>Password</label><input id="up" value="${esc(u.pass)}">
-  <label>WhatsApp number</label><input id="ut" value="${esc(u.phone)}">
-  <label>Sale target (Rs)</label><input id="utg" type="number" value="${u.target||0}">
-  <label>Status</label><select id="ua">
-    <option value="1" ${u.active?'selected':''}>Active</option>
-    <option value="0" ${u.active?'':'selected'}>Disabled</option>
-  </select>
-  
-  <label style="margin-top:14px">Brand wise Profit % (optional)</label>
-  <div class="row">${brands.map(b=>`<div>
-    <label style="margin:0 0 2px;font-size:11px">${esc(b)}</label>
-    <input id="bm_${esc(b).replace(/[^a-zA-Z0-9]/g,'_')}" type="number" placeholder="${D.settings.markup}" value="${bm[b]??''}">
-  </div>`).join('') || '<p class="hint">Pehle Products me brand add karein.</p>'}</div>
-  
-  <div style="margin-top:14px;display:flex;gap:8px">
-    <button class="btn" onclick="saveUser('${id||''}')">Save</button>
-    <button class="btn sec" onclick="modal()">Cancel</button>
-  </div>`);
+function switchTab(tab) {
+  currentTab = tab;
+  loadUsers();
 }
 
-function saveUser(id){
-  const un = v('uu').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
-  if(!un || !v('up') || !v('un').trim()) return alert('Name, username aur password zaroori hain');
-  if(D.users.some(x=>x.username==un && x.id!=id)) return alert('Ye username pehle se maujood hai');
-  
-  const brands = [...new Set(D.products.map(p=>p.brand).filter(Boolean))];
-  const brandMarkup = {};
-  brands.forEach(b=>{
-    const inp = $('bm_'+b.replace(/[^a-zA-Z0-9]/g,'_'));
-    if(inp && inp.value!=='') brandMarkup[b] = +inp.value;
+// --- Actions ---
+
+function createUser() {
+  const name = v('u_name').trim();
+  const un = v('u_username').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+  const pass = v('u_pass').trim();
+  const phone = v('u_phone').trim();
+  const biz = v('u_biz').trim();
+  const addr = v('u_addr').trim();
+  const target = +v('u_target');
+
+  if(!name || !un || !pass) return alert('Name, username and password are required');
+  if(D.users.some(x => x.username === un)) return alert('This username already exists');
+
+  D.users.push({
+    id: uid(),
+    name: name,
+    username: un,
+    pass: pass,
+    phone: phone,
+    biz: biz,
+    addr: addr,
+    target: target,
+    role: 'user',
+    active: true,
+    wallet: 0,
+    brandMarkup: {}
   });
-  
-  const o = {
-    name:v('un').trim(), biz:v('ub').trim(), addr:v('uad').trim(),
-    username:un, pass:v('up'), phone:v('ut').trim(), target:+v('utg')||0,
-    brandMarkup, active:v('ua')=='1', role:'user'
-  };
-  
-  if(id) Object.assign(D.users.find(x=>x.id==id), o);
-  else D.users.push({id:uid(), ...o});
-  
-  save(); modal(); loadUsers();
+
+  save();
+  alert('User created successfully!');
+  switchTab('all');
 }
 
-function delUser(id){
-  if(confirm('User delete karna hai?')){
-    D.users = D.users.filter(u=>u.id!=id);
-    save(); loadUsers();
+function editUser(id) {
+  const u = D.users.find(x => x.id === id);
+  if(!u) return;
+  
+  const newName = prompt('Edit Name:', u.name);
+  if(newName !== null && newName.trim() !== '') {
+    u.name = newName.trim();
+    save();
+    loadUsers();
   }
 }
 
