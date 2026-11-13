@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Database - Adeel Mobile</title>
-<!-- Supabase Library Add Ki Gayi Hai -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="css/style.css">
 <style>
@@ -23,13 +22,16 @@
   /* Panels */
   .db-panel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
   .db-panel.active { display: block; }
-  
   .db-panel h3 { font-size: 16px; color: var(--ink); margin-bottom: 15px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
 
   /* Brands List */
   .brand-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
-  .brand-tag { background: var(--pri2); color: var(--pri); padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
-  .brand-tag span { cursor: pointer; color: var(--bad); font-size: 16px; line-height: 1; }
+  .brand-tag { 
+    background: var(--pri2); color: var(--pri); padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; 
+    display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; -webkit-user-select: none;
+    -webkit-touch-callout: none; transition: 0.2s;
+  }
+  .brand-tag:active { background: var(--line); }
 
   /* Search Bar */
   .db-search { width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); margin-bottom: 15px; font-size: 14px; outline: none; }
@@ -42,6 +44,23 @@
   .price-item-info b { display: block; font-size: 14px; color: var(--ink); }
   .price-item-info small { display: block; font-size: 12px; color: var(--mute); margin-top: 2px; }
   .price-item-amount { font-weight: 700; color: var(--pri); font-size: 15px; }
+
+  /* --- Naya CSS Image Upload ke liye --- */
+  .image-preview-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; margin-top: 10px;
+  }
+  .img-preview-box {
+    position: relative; border: 2px solid var(--line); border-radius: 8px; overflow: hidden; aspect-ratio: 1;
+    display: flex; align-items: center; justify-content: center; background: #f0f0f0;
+  }
+  .img-preview-box.cover-selected { border-color: var(--pri); box-shadow: 0 0 5px rgba(0,0,0,0.2); }
+  .img-preview-box img { width: 100%; height: 100%; object-fit: cover; }
+  .cover-badge {
+    position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: #fff;
+    font-size: 10px; text-align: center; padding: 3px 0; cursor: pointer;
+  }
+  .cover-selected .cover-badge { background: var(--pri); }
+  .upload-loading { text-align: center; color: var(--pri); font-weight: bold; margin-top: 10px; display: none; }
 </style>
 </head>
 <body>
@@ -52,13 +71,18 @@
 if(!me) window.location.href='index.html';
 if(me.role!=='admin') window.location.href='dashboard.html';
 
-let currentTab = 'brand'; // Default tab
+let currentTab = 'brand'; 
 let priceSearch = '';
 let allBrands = [];
 let allModels = [];
 let allVariants = [];
+let pressTimer; 
 
-// Naya function: Supabase se data fetch karne ke liye
+// Naye variables Images ke liye
+let selectedFiles = []; // Actual File objects
+let previewUrls = [];   // Base64 URLs for preview
+let coverIndex = 0;     // Default pehli image cover hogi
+
 async function fetchDatabaseData() {
   try {
     const { data: brands } = await supabaseClient.from('brands').select('*');
@@ -74,12 +98,11 @@ async function fetchDatabaseData() {
 }
 
 async function loadDatabase() {
-  await fetchDatabaseData(); // Pehle data fetch karo
+  await fetchDatabaseData(); 
 
   let html = `
   <div class="top"><h2>Master Database</h2></div>
   
-  <!-- Top Tabs (Buttons) -->
   <div class="db-tabs">
     <button class="db-tab-btn ${currentTab==='brand'?'active':''}" onclick="switchTab('brand')">🏷️ Add Brand</button>
     <button class="db-tab-btn ${currentTab==='model'?'active':''}" onclick="switchTab('model')">📱 Add Model</button>
@@ -90,12 +113,21 @@ async function loadDatabase() {
   <!-- 1. Add Brand Panel -->
   <div class="db-panel ${currentTab==='brand'?'active':''}">
     <h3>Add New Brand</h3>
+    <p style="font-size: 11px; color: var(--mute); margin-bottom: 10px;">(Tip: Brand par daba kar rakhne se Edit ka option milega)</p>
     <div style="display:flex; gap:10px;">
       <input id="new_brand" placeholder="e.g. Samsung, Apple">
       <button class="btn" onclick="addBrand()">Add</button>
     </div>
     <div class="brand-list">
-      ${allBrands.map(b => `<div class="brand-tag">${esc(b.brand)} <span onclick="deleteBrand('${b.id}')">×</span></div>`).join('')}
+      ${allBrands.map(b => `
+        <div class="brand-tag" 
+             onmousedown="startPress('${b.id}', '${esc(b.brand)}')" 
+             onmouseup="cancelPress()" onmouseleave="cancelPress()"
+             ontouchstart="startPress('${b.id}', '${esc(b.brand)}')" 
+             ontouchend="cancelPress()" ontouchcancel="cancelPress()">
+          ${esc(b.brand)}
+        </div>
+      `).join('')}
     </div>
   </div>
 
@@ -112,8 +144,13 @@ async function loadDatabase() {
     <input id="m_variant" placeholder="e.g. 8GB/128GB">
     <label>Price (Rs)</label>
     <input id="m_price" type="number" placeholder="0">
-    <label>Image URL (Optional)</label>
-    <input id="m_img" placeholder="https://...">
+    
+    <!-- Naya Image Upload Section -->
+    <label>Product Images (Multiple select karein)</label>
+    <input type="file" id="m_images" accept="image/*" multiple onchange="handleImageSelect(event)" style="padding: 10px; background: #fff; border: 1px dashed var(--pri);">
+    <div id="image_preview_container" class="image-preview-grid"></div>
+    <p id="upload_status" class="upload-loading">Uploading images, please wait...</p>
+
     <button class="btn" style="margin-top:15px; width:100%" onclick="addModel()">Save Model</button>
   </div>
 
@@ -155,6 +192,9 @@ async function loadDatabase() {
 
 function switchTab(tab) {
   currentTab = tab;
+  selectedFiles = [];
+  previewUrls = [];
+  coverIndex = 0;
   loadDatabase();
 }
 
@@ -176,28 +216,162 @@ async function addBrand() {
   }
 }
 
-async function deleteBrand(id) {
-  if(confirm(`Delete this brand and all its models?`)) {
-    try {
-      const { error } = await supabaseClient.from('brands').delete().eq('id', id);
-      if(error) throw error;
-      loadDatabase();
-    } catch(err) {
-      alert('Error: ' + err.message);
-    }
+function startPress(id, currentName) {
+  pressTimer = setTimeout(() => { editBrandPrompt(id, currentName); }, 600); 
+}
+
+function cancelPress() { clearTimeout(pressTimer); }
+
+function editBrandPrompt(id, oldName) {
+  let newName = prompt("Edit Brand Name:", oldName);
+  if (newName !== null && newName.trim() !== "" && newName.trim() !== oldName) {
+    updateBrandName(id, newName.trim());
   }
 }
+
+async function updateBrandName(id, newName) {
+  try {
+    const { error } = await supabaseClient.from('brands').update({ brand: newName }).eq('id', id);
+    if(error) throw error;
+    alert('Brand updated successfully!');
+    loadDatabase();
+  } catch (err) {
+    alert('Error updating brand: ' + err.message);
+  }
+}
+
+// --- IMAGE HANDLING LOGIC ---
+
+// 1. File Select hone par preview aur resize save karna
+function handleImageSelect(event) {
+  const files = Array.from(event.target.files);
+  if (files.length === 0) return;
+
+  selectedFiles = []; // Reset
+  previewUrls = [];
+  
+  files.forEach(file => {
+    // Canvas se auto resize karna (Max 800px width/height)
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const maxSize = 800; // 800px se bada nahi hoga
+
+        if (width > height) {
+          if (width > maxSize) { height *= maxSize / width; width = maxSize; }
+        } else {
+          if (height > maxSize) { width *= maxSize / height; height = maxSize; }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Resized image ko blob mein convert karna (Upload ke liye)
+        canvas.toBlob((blob) => {
+          const resizedFile = new File([blob], file.name, { type: 'image/jpeg' });
+          selectedFiles.push(resizedFile);
+          previewUrls.push(canvas.toDataURL('image/jpeg', 0.8)); // Preview ke liye
+          
+          // Jab sari images process ho jayein, preview show karo
+          if (selectedFiles.length === files.length) {
+            coverIndex = 0; // Default pehli image cover
+            renderImagePreviews();
+          }
+        }, 'image/jpeg', 0.8);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// 2. Preview Grid Render karna
+function renderImagePreviews() {
+  const container = document.getElementById('image_preview_container');
+  if (!container) return;
+  
+  container.innerHTML = previewUrls.map((url, index) => `
+    <div class="img-preview-box ${index === coverIndex ? 'cover-selected' : ''}">
+      <img src="${url}" alt="preview">
+      <div class="cover-badge" onclick="setCoverImage(${index})">
+        ${index === coverIndex ? '⭐ Cover' : 'Set Cover'}
+      </div>
+    </div>
+  `).join('');
+}
+
+function setCoverImage(index) {
+  coverIndex = index;
+  renderImagePreviews();
+}
+
+// 3. Supabase Storage mein upload karna
+async function uploadImagesToSupabase(modelName) {
+  let uploadedUrls = [];
+  
+  for (let i = 0; i < selectedFiles.length; i++) {
+    const file = selectedFiles[i];
+    // File ka unique naam banana (timestamp ke sath taake overwrite na ho)
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    
+    // Supabase bucket 'product-images' mein upload
+    const { data, error } = await supabaseClient.storage
+      .from('product-images')
+      .upload(fileName, file);
+
+    if (error) {
+      console.error("Upload error:", error);
+      throw new Error("Image upload failed: " + error.message);
+    }
+    
+    // Public URL nikalna
+    const { data: urlData } = supabaseClient.storage
+      .from('product-images')
+      .getPublicUrl(fileName);
+      
+    uploadedUrls.push(urlData.publicUrl);
+  }
+  return uploadedUrls;
+}
+
 
 async function addModel() {
   const brandId = v('m_brand');
   const name = v('m_name').trim();
   const variant = v('m_variant').trim();
   const price = +v('m_price');
-  const img = v('m_img').trim();
 
   if(!brandId || !name || price <= 0) return alert('Please fill Brand, Model Name and Price');
 
+  const btn = document.querySelector('#root button.btn'); // Save button ko disable karne ke liye
+  const statusEl = document.getElementById('upload_status');
+  
   try {
+    let finalImageUrl = "";
+
+    // Agar images select hui hain toh upload karo
+    if (selectedFiles.length > 0) {
+      statusEl.style.display = 'block';
+      btn.disabled = true;
+      btn.innerText = "Uploading...";
+      
+      // Sari images upload karo
+      const urls = await uploadImagesToSupabase(name);
+      
+      // Sirf Cover image ka URL lein (jo user ne select ki)
+      finalImageUrl = urls[coverIndex] || urls[0];
+
+      // Baqi images ko JSON string bana kar save kar sakte hain future ke liye.
+      // Filhal hum sirf cover image 'image_link' mein save kar rahe hain.
+    }
+
     // 1. Model add karo (Agar pehle se nahi hai)
     let modelId = null;
     const existingModel = allModels.find(m => m.model.toLowerCase() === name.toLowerCase() && m.brand_id == brandId);
@@ -210,24 +384,32 @@ async function addModel() {
       modelId = newModel[0].id;
     }
 
-    // 2. Variant add karo
+    // 2. Variant add karo (Cover image URL ke sath)
     const { error: vErr } = await supabaseClient.from('variants').insert([{
       model_id: modelId,
       variant: variant,
       price: price,
-      image_link: img
+      image_link: finalImageUrl
     }]);
     if(vErr) throw vErr;
 
-    alert('Model & Variant added to Supabase!');
+    alert('Model & Variant added successfully!');
+    
+    // Reset
+    selectedFiles = [];
+    previewUrls = [];
+    coverIndex = 0;
     loadDatabase();
 
   } catch (err) {
     alert('Error: ' + err.message);
+    btn.disabled = false;
+    btn.innerText = "Save Model";
+    statusEl.style.display = 'none';
   }
 }
 
-// Price Update Popup
+// Price Update Popup (Waisa hi hai)
 function editPricePopup(id) {
   const vItem = allVariants.find(x => x.id === id);
   if(!vItem) return;
