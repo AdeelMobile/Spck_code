@@ -18,24 +18,31 @@ function showDebug(msg, color) {
   setTimeout(() => { if(dbg) dbg.remove(); }, 10000);
 }
 
-// Library Loader
-window.addEventListener('load', () => {
-  // Thora intezar taake script tag load ho jaye
-  setTimeout(() => {
-    if (window.supabase) {
-      try {
-        supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
-        console.log('Supabase connected successfully!');
-        testConnection(); // Connection test karo
-      } catch(e) {
-        console.log('Supabase connection error:', e);
-        showDebug("❌ Client banane mein error!", "#ef4444");
-      }
-    } else {
-      showDebug("❌ Supabase Library Load Nahi Hui!", "#ef4444");
-    }
-  }, 1000); // 1 second wait
-});
+// Library check aur load function
+function initSupabase() {
+  if (window.supabase) {
+    // Library pehle se load hai
+    supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+    console.log('Supabase connected successfully!');
+    testConnection();
+  } else {
+    // Library load nahi hai, khud load karo
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+    script.onload = () => {
+      supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+      console.log('Supabase connected successfully (auto loaded)!');
+      testConnection();
+    };
+    script.onerror = () => {
+      showDebug("❌ Library Load Nahi Hui (Network Error)!", "#ef4444");
+    };
+    document.head.appendChild(script);
+  }
+}
+
+// Page load hote hi Supabase check karo
+window.addEventListener('load', initSupabase);
 
 // Connection Test
 async function testConnection() {
@@ -44,7 +51,6 @@ async function testConnection() {
     return;
   }
   try {
-    // 'products' table se data fetch karne ki koshish
     const { data, error } = await supabaseClient.from('products').select('*').limit(1);
     
     if(error) {
