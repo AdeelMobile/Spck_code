@@ -1,6 +1,6 @@
 // ==========================================
 // STORE LOGIC & SECTION LOADER (Supabase Data)
-// UPDATE: 2026-11-13
+// UPDATE: 2026-11-14 (Specs Table Added)
 // ==========================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -40,7 +40,6 @@ async function loadProductsFromSupabase() {
   const grid = document.getElementById('productGrid');
   if (!grid) return;
 
-  // Check karo ke supabase load hua hai ya nahi
   if (!supabaseClient) {
     grid.innerHTML = '<p style="text-align:center; color:var(--bad); grid-column: span 2;">Database connection error. Please refresh.</p>';
     return;
@@ -49,8 +48,8 @@ async function loadProductsFromSupabase() {
   grid.innerHTML = '<p style="text-align:center; color:var(--mute); grid-column: span 2;">Loading products...</p>';
 
   try {
-    // 1. Brands, Models, aur Variants fetch karo
-    const { data: brands } = await supabaseClient.from('brands').select('id, brand');
+    // Sirf active brands fetch honge (Hide wale nahi aayenge)
+    const { data: brands } = await supabaseClient.from('brands').select('id, brand').eq('is_active', true);
     const { data: models } = await supabaseClient.from('models').select('id, brand_id, model');
     const { data: variants } = await supabaseClient.from('variants').select('*');
 
@@ -59,20 +58,18 @@ async function loadProductsFromSupabase() {
       return;
     }
 
-    // 2. Data ko aapas mein jodo (Join)
     let html = '';
     let count = 0;
 
     variants.forEach(v => {
-      // Variant ka model dhoondo
       const model = models.find(m => m.id === v.model_id);
-      if(!model) return; // Agar model nahi mila to skip
+      if(!model) return; 
 
-      // Model ka brand dhoondo
+      // Agar brand hide hai toh skip karo
       const brand = brands.find(b => b.id === model.brand_id);
-      const brandName = brand ? brand.brand : 'Unknown';
+      if (!brand) return; 
 
-      // Sirf wo variants show karo jo website par show karne hain
+      const brandName = brand.brand;
       if(v.show_website === false) return; 
 
       count++;
@@ -84,7 +81,6 @@ async function loadProductsFromSupabase() {
       const msg = encodeURIComponent('Hello, I want to book ' + brandName + ' ' + pName);
       const pData = JSON.stringify(v).replace(/"/g, '&quot;');
 
-      // Image ka logic
       let imgStyle = '';
       if(v.image_link) {
         imgStyle = `background-image:url('${v.image_link}'); background-size:contain;`;
@@ -132,12 +128,36 @@ async function loadProductsFromSupabase() {
   }
 }
 
-// --- MORE DETAILS POPUP ---
+// --- MORE DETAILS POPUP (With Specs Table) ---
 function showMore(p) {
   const price = p.price || 0;
   const advance = price * 0.30;
   const monthly9 = (price - advance) / 9;
   const monthly6 = (price - advance) / 6;
+
+  // Specs ko Table mein convert karne ka logic
+  let specsTableHtml = '<p style="color:var(--mute); font-size:13px;">No specifications available.</p>';
+  
+  if (p.specs) {
+    let specsObj = p.specs;
+    
+    // Agar database se string aayi hai toh JSON parse karo
+    if (typeof p.specs === 'string') {
+      try { specsObj = JSON.parse(p.specs); } catch(e) { specsObj = null; }
+    }
+    
+    // Agar JSON object hai toh Table banao
+    if (specsObj && typeof specsObj === 'object' && Object.keys(specsObj).length > 0) {
+      specsTableHtml = `<table style="width:100%; border-collapse: collapse; font-size:13px; margin-top:10px;">
+        ${Object.entries(specsObj).map(([key, value]) => `
+          <tr style="border-bottom: 1px solid var(--line);">
+            <td style="padding: 8px 5px; font-weight: 600; color: var(--ink); width: 40%;">${esc(key)}</td>
+            <td style="padding: 8px 5px; color: var(--mute);">${esc(value)}</td>
+          </tr>
+        `).join('')}
+      </table>`;
+    }
+  }
 
   let html = `
     <div style="text-align:center; margin-bottom:20px;">
@@ -166,8 +186,8 @@ function showMore(p) {
     </div>
 
     <div>
-      <h4 style="margin-bottom:8px;">Specifications</h4>
-      <p style="color:var(--mute); font-size:13px; line-height:1.5;">${p.specs ? JSON.stringify(p.specs) : 'No specifications available.'}</p>
+      <h4 style="margin-bottom:8px; color: var(--ink);">Specifications</h4>
+      ${specsTableHtml}
     </div>
 
     <button class="btn" style="width:100%; margin-top:20px;" onclick="closeModal()">Close</button>
@@ -227,7 +247,6 @@ function submitVerification(productName) {
     return;
   }
 
-  // Filhal hum verification ko local storage me save kar rahe hain
   D.verifications.push({
     id: uid(),
     userId: 'guest',
@@ -241,7 +260,7 @@ function submitVerification(productName) {
     date: Date.now()
   });
 
-  save(); // Global save function
+  save(); 
   closeModal();
   alert('Verification request submitted successfully! Our team will contact you.');
 }
