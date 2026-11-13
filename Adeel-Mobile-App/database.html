@@ -56,8 +56,7 @@
   
   /* Modal Specific */
   .modal-content { max-height: 85vh; overflow-y: auto; padding-bottom: 20px; }
-  .action-btn { display: block; width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--line); background: #fff; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
-  .action-btn:active { background: var(--bg); }
+  .btn-danger { background: #ffebee; color: #d32f2f; border: 1px solid #ffcdd2; margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -68,14 +67,13 @@
 if(!me) window.location.href='index.html';
 if(me.role!=='admin') window.location.href='dashboard.html';
 
-let currentTab = 'brand'; 
+let currentTab = 'price'; 
 let priceSearch = '';
 let allBrands = [];
 let allModels = [];
 let allVariants = [];
-let pressTimer; // Brand edit long press ke liye (pehle se chal raha hai)
+let pressTimer; 
 
-// Variables for Add/Edit Images
 let selectedFiles = []; 
 let previewUrls = [];   
 let coverIndex = 0;     
@@ -101,36 +99,41 @@ async function loadDatabase() {
   <div class="top"><h2>Master Database</h2></div>
   
   <div class="db-tabs">
+    <button class="db-tab-btn ${currentTab==='price'?'active':''}" onclick="switchTab('price')">💰 Product Updates</button>
+    <button class="db-tab-btn ${currentTab==='model'?'active':''}" onclick="switchTab('model')">📱 Add Product</button>
+    <button class="db-tab-btn ${currentTab==='bulk'?'active':''}" onclick="switchTab('bulk')">📦 Bulk Uploading</button>
     <button class="db-tab-btn ${currentTab==='brand'?'active':''}" onclick="switchTab('brand')">🏷️ Add Brand</button>
-    <button class="db-tab-btn ${currentTab==='model'?'active':''}" onclick="switchTab('model')">📱 Add Model</button>
-    <button class="db-tab-btn ${currentTab==='bulk'?'active':''}" onclick="switchTab('bulk')">📦 Bulk Upload</button>
-    <button class="db-tab-btn ${currentTab==='price'?'active':''}" onclick="switchTab('price')">💰 Update Product</button>
   </div>
 
-  <!-- 1. Add Brand Panel -->
-  <div class="db-panel ${currentTab==='brand'?'active':''}">
-    <h3>Add New Brand</h3>
-    <p style="font-size: 11px; color: var(--mute); margin-bottom: 10px;">(Tip: Brand par daba kar rakhne se Edit ka option milega)</p>
-    <div style="display:flex; gap:10px;">
-      <input id="new_brand" placeholder="e.g. Samsung, Apple">
-      <button class="btn" onclick="addBrand()">Add</button>
-    </div>
-    <div class="brand-list">
-      ${allBrands.map(b => `
-        <div class="brand-tag" 
-             onmousedown="startPress('${b.id}', '${esc(b.brand)}')" 
-             onmouseup="cancelPress()" onmouseleave="cancelPress()"
-             ontouchstart="startPress('${b.id}', '${esc(b.brand)}')" 
-             ontouchend="cancelPress()" ontouchcancel="cancelPress()">
-          ${esc(b.brand)}
-        </div>
-      `).join('')}
+  <!-- 1. Product Updates Panel -->
+  <div class="db-panel ${currentTab==='price'?'active':''}">
+    <h3>Product Updates</h3>
+    <input type="text" class="db-search" id="searchPrice" placeholder="Search model name..." oninput="priceSearch=this.value; loadDatabase()" value="${esc(priceSearch)}">
+    
+    <div class="price-list">
+      ${allVariants
+        .filter(v => {
+          const model = allModels.find(m => m.id === v.model_id);
+          if(!model) return false;
+          return model.model.toLowerCase().includes(priceSearch.toLowerCase());
+        })
+        .map(v => {
+          const model = allModels.find(m => m.id === v.model_id);
+          return `
+          <div class="price-item" onclick="openEditPopup('${v.id}')">
+            <div class="price-item-info">
+              <b>${esc(model.model)}</b>
+              <small>Variant: ${esc(v.variant || 'N/A')}</small>
+            </div>
+            <div class="price-item-amount">${rs(v.price)}</div>
+          </div>`;
+        }).join('') || '<p style="text-align:center; color:var(--mute);">No models found.</p>'}
     </div>
   </div>
 
-  <!-- 2. Add Model Panel -->
+  <!-- 2. Add Product Panel -->
   <div class="db-panel ${currentTab==='model'?'active':''}">
-    <h3>Add New Model & Variant</h3>
+    <h3>Add New Product</h3>
     <label>Select Brand</label>
     <select id="m_brand">
       ${allBrands.map(b => `<option value="${b.id}">${esc(b.brand)}</option>`).join('') || '<option value="">No brands added yet</option>'}
@@ -147,39 +150,32 @@ async function loadDatabase() {
     <div id="add_image_preview" class="image-preview-grid"></div>
     <p id="add_upload_status" class="upload-loading">Uploading images, please wait...</p>
 
-    <button class="btn" style="margin-top:15px; width:100%" onclick="addModel()">Save Model</button>
+    <button class="btn" style="margin-top:15px; width:100%" onclick="addModel()">Save Product</button>
   </div>
 
-  <!-- 3. Bulk Upload Panel -->
+  <!-- 3. Bulk Uploading Panel -->
   <div class="db-panel ${currentTab==='bulk'?'active':''}">
-    <h3>Bulk Upload (Coming Soon)</h3>
+    <h3>Bulk Uploading (Coming Soon)</h3>
     <p class="hint">Filhal ye feature Supabase ke sath kaam nahi karta. Agli update mein aayega.</p>
   </div>
 
-  <!-- 4. Price Update Panel (Now Update Product) -->
-  <div class="db-panel ${currentTab==='price'?'active':''}">
-    <h3>Update Products</h3>
-    <p style="font-size: 11px; color: var(--mute); margin-bottom: 10px;">(Tip: Kisi bhi model par click karein Edit/Delete ke liye)</p>
-    <input type="text" class="db-search" id="searchPrice" placeholder="Search model name..." oninput="priceSearch=this.value; loadDatabase()" value="${esc(priceSearch)}">
-    
-    <div class="price-list">
-      ${allVariants
-        .filter(v => {
-          const model = allModels.find(m => m.id === v.model_id);
-          if(!model) return false;
-          return model.model.toLowerCase().includes(priceSearch.toLowerCase());
-        })
-        .map(v => {
-          const model = allModels.find(m => m.id === v.model_id);
-          return `
-          <div class="price-item" onclick="openActionMenu('${v.id}')">
-            <div class="price-item-info">
-              <b>${esc(model.model)}</b>
-              <small>Variant: ${esc(v.variant || 'N/A')}</small>
-            </div>
-            <div class="price-item-amount">${rs(v.price)}</div>
-          </div>`;
-        }).join('') || '<p style="text-align:center; color:var(--mute);">No models found.</p>'}
+  <!-- 4. Add Brand Panel -->
+  <div class="db-panel ${currentTab==='brand'?'active':''}">
+    <h3>Add New Brand</h3>
+    <div style="display:flex; gap:10px;">
+      <input id="new_brand" placeholder="e.g. Samsung, Apple">
+      <button class="btn" onclick="addBrand()">Add</button>
+    </div>
+    <div class="brand-list">
+      ${allBrands.map(b => `
+        <div class="brand-tag" 
+             onmousedown="startPress('${b.id}', '${esc(b.brand)}')" 
+             onmouseup="cancelPress()" onmouseleave="cancelPress()"
+             ontouchstart="startPress('${b.id}', '${esc(b.brand)}')" 
+             ontouchend="cancelPress()" ontouchcancel="cancelPress()">
+          ${esc(b.brand)}
+        </div>
+      `).join('')}
     </div>
   </div>
   `;
@@ -195,8 +191,6 @@ function switchTab(tab) {
   loadDatabase();
 }
 
-// --- Actions ---
-
 async function addBrand() {
   const b = v('new_brand').trim();
   if(!b) return alert('Please enter a brand name');
@@ -205,7 +199,7 @@ async function addBrand() {
   try {
     const { error } = await supabaseClient.from('brands').insert([{ brand: b }]);
     if(error) throw error;
-    alert('Brand added to Supabase!');
+    alert('Brand added!');
     loadDatabase();
   } catch (err) {
     alert('Error: ' + err.message);
@@ -231,47 +225,11 @@ async function updateBrandName(id, newName) {
     alert('Brand updated successfully!');
     loadDatabase();
   } catch (err) {
-    alert('Error updating brand: ' + err.message);
+    alert('Error: ' + err.message);
   }
 }
 
-// --- ACTION MENU (Click par) ---
-function openActionMenu(variantId) {
-  const variant = allVariants.find(x => x.id === variantId);
-  if(!variant) return;
-  const model = allModels.find(m => m.id === variant.model_id);
-  
-  let html = `
-    <div style="padding: 10px;">
-      <h3 style="margin-bottom: 5px;">${esc(model ? model.model : 'Unknown')}</h3>
-      <p style="color: gray; font-size: 13px; margin-bottom: 20px;">${esc(variant.variant || 'No Variant')} | Rs ${rs(variant.price)}</p>
-      
-      <button class="action-btn" onclick="openEditPopup('${variantId}')">✏️ Edit Product</button>
-      <button class="action-btn" style="color: red;" onclick="deleteProduct('${variantId}')">❌ Delete Product</button>
-      <button class="action-btn" style="text-align: center; margin-top: 10px; background: var(--bg);" onclick="modal()">Cancel</button>
-    </div>
-  `;
-  modal(html);
-}
-
-// Delete Product Function
-async function deleteProduct(variantId) {
-  if(confirm("Kya aap waqai ye product delete karna chahte hain?")) {
-    try {
-      const { error } = await supabaseClient.from('variants').delete().eq('id', variantId);
-      if(error) throw error;
-      
-      alert('Product deleted successfully!');
-      modal(); // Close popup
-      loadDatabase(); // Refresh list
-    } catch(err) {
-      alert('Error deleting product: ' + err.message);
-    }
-  }
-}
-
-// --- IMAGE HANDLING LOGIC ---
-
+// --- IMAGE HANDLING ---
 function handleImageSelect(event, type) {
   const files = Array.from(event.target.files);
   if (files.length === 0) return;
@@ -391,66 +349,86 @@ async function addModel() {
     }]);
     if(vErr) throw vErr;
 
-    alert('Model & Variant added successfully!');
+    alert('Product added successfully!');
     selectedFiles = []; previewUrls = []; coverIndex = 0;
     loadDatabase();
 
   } catch (err) {
     alert('Error: ' + err.message);
     btn.disabled = false;
-    btn.innerText = "Save Model";
+    btn.innerText = "Save Product";
     statusEl.style.display = 'none';
   }
 }
 
-// --- EDIT PRODUCT POPUP ---
+
+// --- EDIT PRODUCT POPUP (Fixed) ---
 function openEditPopup(variantId) {
-  const variant = allVariants.find(x => x.id === variantId);
-  if(!variant) return;
-  
-  const model = allModels.find(m => m.id === variant.model_id);
-  if(!model) return;
-  
-  const brand = allBrands.find(b => b.id === model.brand_id);
-  
-  // Reset global image variables for edit
-  selectedFiles = [];
-  previewUrls = [];
-  coverIndex = 0;
+  try {
+    const variant = allVariants.find(x => String(x.id) === String(variantId));
+    if(!variant) return alert("Product data nahi mila!");
 
-  let html = `
-    <div class="modal-content">
-      <h3>Edit Product</h3>
-      
-      <label>Brand</label>
-      <input value="${esc(brand ? brand.brand : 'Unknown')}" disabled style="background:#f0f0f0;">
-      
-      <label>Model Name</label>
-      <input value="${esc(model.model)}" disabled style="background:#f0f0f0;">
-      
-      <label>Variant (RAM/Storage)</label>
-      <input id="e_variant" value="${esc(variant.variant || '')}">
-      
-      <label>Price (Rs)</label>
-      <input id="e_price" type="number" value="${variant.price}">
-      
-      <label>Current Image</label>
-      <div style="margin-bottom:10px;">
-         ${variant.image_link ? `<img src="${variant.image_link}" style="width:80px; height:80px; object-fit:cover; border-radius:8px; border:1px solid #ccc;">` : '<span style="font-size:12px; color:gray;">No image uploaded</span>'}
-      </div>
-      
-      <label>Upload New Images (To replace)</label>
-      <input type="file" accept="image/*" multiple onchange="handleImageSelect(event, 'edit')" style="padding: 10px; background: #fff; border: 1px dashed var(--pri);">
-      <div id="edit_image_preview" class="image-preview-grid"></div>
-      <p id="edit_upload_status" class="upload-loading">Uploading images, please wait...</p>
+    const model = allModels.find(m => String(m.id) === String(variant.model_id));
+    if(!model) return alert("Model data nahi mila!");
 
-      <div style="margin-top:20px; display:flex; gap:10px;">
-        <button class="btn" onclick="saveEditedProduct('${variant.id}', '${variant.image_link || ''}')">Update Product</button>
-        <button class="btn sec" onclick="modal()">Cancel</button>
+    const brand = allBrands.find(b => String(b.id) === String(model.brand_id));
+
+    selectedFiles = [];
+    previewUrls = [];
+    coverIndex = 0;
+
+    // Safe variables without special chars breaking the string
+    const vId = String(variant.id);
+    const brandName = brand ? brand.brand : 'Unknown';
+    const modelName = model.model;
+    const variantName = variant.variant || '';
+    const priceVal = variant.price;
+    const imgUrl = variant.image_link || '';
+
+    // HTML content
+    let html = `
+      <div class="modal-content">
+        <h3 style="margin-bottom:15px; border-bottom:1px solid #ccc; padding-bottom:10px;">Edit Product</h3>
+        
+        <label>Brand</label>
+        <input value="${brandName}" disabled style="background:#eee; color:#555;">
+        
+        <label>Model Name</label>
+        <input value="${modelName}" disabled style="background:#eee; color:#555;">
+        
+        <label>Variant (RAM/Storage)</label>
+        <input id="e_variant" value="${variantName}">
+        
+        <label>Price (Rs)</label>
+        <input id="e_price" type="number" value="${priceVal}">
+        
+        <label>Current Image</label>
+        <div style="margin-bottom:10px;">
+           ${imgUrl ? `<img src="${imgUrl}" style="width:80px; height:80px; object-fit:cover; border-radius:8px; border:1px solid #ccc;">` : '<span style="font-size:12px; color:gray;">No image uploaded</span>'}
+        </div>
+        
+        <label>Upload New Images (To replace)</label>
+        <input type="file" accept="image/*" multiple onchange="handleImageSelect(event, 'edit')" style="padding: 10px; background: #fff; border: 1px dashed var(--pri);">
+        <div id="edit_image_preview" class="image-preview-grid"></div>
+        <p id="edit_upload_status" class="upload-loading">Uploading images, please wait...</p>
+
+        <div style="margin-top:20px; display:flex; flex-direction: column; gap:10px;">
+          <div style="display:flex; gap:10px;">
+            <button class="btn" style="flex:1;" onclick="saveEditedProduct('${vId}', '${imgUrl}')">Update</button>
+            <button class="btn sec" style="flex:1;" onclick="modal()">Cancel</button>
+          </div>
+          <button class="btn btn-danger" onclick="deleteProduct('${vId}')">Delete Product</button>
+        </div>
       </div>
-    </div>
-  `;
-  modal(html);
+    `;
+    
+    // Calling your global modal
+    modal(html);
+    
+  } catch (err) {
+    alert("Popup Error: " + err.message);
+    console.error(err);
+  }
 }
 
 async function saveEditedProduct(variantId, oldImageUrl) {
@@ -459,7 +437,6 @@ async function saveEditedProduct(variantId, oldImageUrl) {
   
   if(newPrice <= 0) return alert('Please enter a valid price');
   
-  const btn = document.querySelector('.modal-content button.btn');
   const statusEl = document.getElementById('edit_upload_status');
   
   try {
@@ -467,9 +444,6 @@ async function saveEditedProduct(variantId, oldImageUrl) {
     
     if (selectedFiles.length > 0) {
       statusEl.style.display = 'block';
-      btn.disabled = true;
-      btn.innerText = "Uploading...";
-      
       const urls = await uploadImagesToSupabase();
       finalImageUrl = urls[coverIndex] || urls[0];
     }
@@ -488,13 +462,24 @@ async function saveEditedProduct(variantId, oldImageUrl) {
     
   } catch (err) {
     alert('Error updating product: ' + err.message);
-    btn.disabled = false;
-    btn.innerText = "Update Product";
     statusEl.style.display = 'none';
   }
 }
 
-// Initial Load
+async function deleteProduct(variantId) {
+  if(confirm("Kya aap waqai ye product delete karna chahte hain?")) {
+    try {
+      const { error } = await supabaseClient.from('variants').delete().eq('id', variantId);
+      if(error) throw error;
+      alert('Product deleted!');
+      modal();
+      loadDatabase();
+    } catch(err) {
+      alert('Error deleting: ' + err.message);
+    }
+  }
+}
+
 loadDatabase();
 </script>
 </body>
