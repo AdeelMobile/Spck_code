@@ -19,7 +19,8 @@ const ICONS = {
   wallet: '<svg width="20" height="20" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>',
   credits: '<svg width="20" height="20" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>',
   social: '<svg width="20" height="20" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>',
-  ai: '<svg width="20" height="20" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"></path><circle cx="7.5" cy="14.5" r="1.5"></circle><circle cx="16.5" cy="14.5" r="1.5"></circle></svg>'
+  ai: '<svg width="20" height="20" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"></path><circle cx="7.5" cy="14.5" r="1.5"></circle><circle cx="16.5" cy="14.5" r="1.5"></circle></svg>',
+  appearance: '<svg width="20" height="20" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>'
 };
 
 function renderApp(title, contentHTML) {
@@ -56,14 +57,21 @@ function renderApp(title, contentHTML) {
       ['database.html', 'Product Updates', ICONS.database]
     ]},
     { id: 'credits', cat: 'Credits & Debits', icon: '📑', items: [
-      ['credits-debits.html', 'Credits & Debits', ICONS.credits]
+      ['credits-debits.html', 'Accounts', ICONS.credits]
     ]},
-    // Yahan Social Media ka naam Content kar diya gaya hai
     { id: 'social', cat: 'Social Media', icon: '📱', items: [
       ['social-media.html', 'Content', ICONS.social]
     ]},
     { id: 'ai', cat: 'AI Agents', icon: '🤖', items: [
       ['ai-agents.html', 'AI Agents', ICONS.ai]
+    ]},
+    // Design Studio ke 5 options naye naamon ke sath
+    { id: 'appearance', cat: 'Design Studio', icon: '🎨', items: [
+      ['design-studio.html?tab=adminpanel', 'Admin Design', ICONS.appearance],
+      ['design-studio.html?tab=userdash', 'User Design', ICONS.dashboard],
+      ['design-studio.html?tab=website', 'Website Design', ICONS.website],
+      ['design-studio.html?tab=themes', 'Theme', ICONS.rules],
+      ['design-studio.html?tab=global', 'Global Settings', ICONS.settings]
     ]},
     { id: 'setting', cat: 'Setting', icon: '⚙️', items: [
       ['settings.html', 'Settings', ICONS.settings]
@@ -89,7 +97,7 @@ function renderApp(title, contentHTML) {
     
     navHtml += navAdmin.map(group => {
       const isOpen = openCategories[group.id];
-      const hasActiveChild = group.items.some(item => item[0] === page);
+      const hasActiveChild = group.items.some(item => item[0].split('?')[0] === page);
       
       let btnClass = "nav";
       if (isOpen || hasActiveChild) btnClass += " on";

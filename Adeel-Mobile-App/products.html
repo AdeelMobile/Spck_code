@@ -3,10 +3,44 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Products - Adeel Mobile</title>
-<!-- Supabase Library Add Ki Gayi Hai -->
+<title>Database - Adeel Mobile</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="css/style.css">
+<style>
+  .db-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 15px; scrollbar-width: none; }
+  .db-tabs::-webkit-scrollbar { display: none; }
+  .db-tab-btn {
+    background: #fff; border: 1px solid var(--line); color: var(--ink);
+    padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    white-space: nowrap; cursor: pointer; transition: 0.2s;
+  }
+  .db-tab-btn:hover { border-color: var(--pri); }
+  .db-tab-btn.active { background: var(--pri); color: #fff; border-color: var(--pri); }
+
+  .db-panel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+  .db-panel.active { display: block; }
+  .db-panel h3 { font-size: 16px; color: var(--ink); margin-bottom: 15px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+
+  .brand-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+  .brand-tag { background: var(--pri2); color: var(--pri); padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; user-select: none; transition: 0.2s; }
+  .brand-tag:hover { background: var(--pri); color: #fff; }
+
+  .db-search { width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); margin-bottom: 15px; font-size: 14px; outline: none; }
+  .db-search:focus { border-color: var(--pri); }
+
+  .price-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; }
+  .price-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); cursor: pointer; transition: 0.2s; }
+  .price-item:hover { border-color: var(--pri); background: #fff; }
+  .price-item-info b { display: block; font-size: 14px; color: var(--ink); }
+  .price-item-info small { display: block; font-size: 12px; color: var(--mute); margin-top: 2px; }
+  .price-item-amount { font-weight: 700; color: var(--pri); font-size: 15px; }
+
+  .upload-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .upload-box { border: 2px dashed var(--line); border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; transition: 0.2s; background: var(--bg); aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+  .upload-box:hover { border-color: var(--pri); background: var(--pri2); }
+  .upload-box img { max-width: 100%; max-height: 100%; border-radius: 8px; object-fit: contain; }
+  .upload-label { font-size: 10px; color: var(--mute); margin-top: 4px; }
+</style>
 </head>
 <body>
 <div id="root"></div>
@@ -16,160 +50,286 @@
 if(!me) window.location.href='index.html';
 if(me.role!=='admin') window.location.href='dashboard.html';
 
+let currentTab = 'brand';
+let priceSearch = '';
 let allBrands = [];
 let allModels = [];
 let allVariants = [];
+let uploadedImages = { img1: '', img2: '', img3: '' }; 
 
-async function loadProductsFromSupabase() {
-  const tableBody = document.getElementById('productTableBody');
-  if (!tableBody) return;
-
-  tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Loading products...</td></tr>';
-
+async function fetchDatabaseData() {
   try {
-    // 1. Brands
-    const { data: brands, error: bErr } = await supabaseClient.from('brands').select('*');
-    if (bErr) throw new Error("Brands: " + bErr.message);
-
-    // 2. Models
-    const { data: models, error: mErr } = await supabaseClient.from('models').select('*');
-    if (mErr) throw new Error("Models: " + mErr.message);
-
-    // 3. Variants
-    const { data: variants, error: vErr } = await supabaseClient.from('variants').select('*');
-    if (vErr) throw new Error("Variants: " + vErr.message);
-
+    const { data: brands } = await supabaseClient.from('brands').select('*');
+    const { data: models } = await supabaseClient.from('models').select('*');
+    const { data: variants } = await supabaseClient.from('variants').select('*');
     allBrands = brands || [];
     allModels = models || [];
     allVariants = variants || [];
+  } catch (err) { console.error(err); }
+}
 
-    if (allVariants.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No products found in Database.</td></tr>';
-      return;
+async function loadDatabase() {
+  await fetchDatabaseData();
+
+  let html = `
+  <div class="top"><h2>Master Database</h2></div>
+  
+  <div class="db-tabs">
+    <button class="db-tab-btn ${currentTab==='brand'?'active':''}" onclick="switchTab('brand')">🏷️ Add Brand</button>
+    <button class="db-tab-btn ${currentTab==='model'?'active':''}" onclick="switchTab('model')">📱 Add Model</button>
+    <button class="db-tab-btn ${currentTab==='price'?'active':''}" onclick="switchTab('price')">💰 Price Update</button>
+  </div>
+
+  <div class="db-panel ${currentTab==='brand'?'active':''}">
+    <h3>Add New Brand</h3>
+    <div style="display:flex; gap:10px;">
+      <input id="new_brand" placeholder="e.g. Samsung, Apple">
+      <button class="btn" onclick="addBrand()">Add</button>
+    </div>
+    <div class="brand-list">
+      ${allBrands.map(b => `<div class="brand-tag" onmousedown="startLongPress('${b.id}', '${esc(b.brand)}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()" ontouchstart="startLongPress('${b.id}', '${esc(b.brand)}')" ontouchend="cancelLongPress()">${esc(b.brand)}</div>`).join('')}
+    </div>
+  </div>
+
+  <div class="db-panel ${currentTab==='model'?'active':''}">
+    <h3>Add New Model & Variant</h3>
+    <label>Select Brand</label>
+    <select id="m_brand">
+      ${allBrands.map(b => `<option value="${b.id}">${esc(b.brand)}</option>`).join('') || '<option value="">No brands added yet</option>'}
+    </select>
+    <label>Model Name</label>
+    <input id="m_name" placeholder="e.g. Galaxy A15">
+    <label>Variant (RAM/Storage)</label>
+    <input id="m_variant" placeholder="e.g. 8GB/128GB">
+    <label>Price (Rs)</label>
+    <input id="m_price" type="number" placeholder="0">
+    
+    <label>Specifications</label>
+    <textarea id="m_specs" rows="3" placeholder="e.g. 6.5 inch screen, 50MP Camera, 5000mAh battery..."></textarea>
+    
+    <label>Product Images (3 Images)</label>
+    <div class="upload-grid">
+      <div>
+        <div class="upload-box" onclick="document.getElementById('f1').click()">
+          <input type="file" id="f1" accept="image/*" style="display:none" onchange="handleImageUpload(this, 'img1')">
+          <div id="txt1" style="color:var(--mute); font-size:24px;">📷</div>
+          <img id="p1" style="display:none">
+        </div>
+        <div class="upload-label" style="text-align:center;">Image 1 (Front)</div>
+      </div>
+      <div>
+        <div class="upload-box" onclick="document.getElementById('f2').click()">
+          <input type="file" id="f2" accept="image/*" style="display:none" onchange="handleImageUpload(this, 'img2')">
+          <div id="txt2" style="color:var(--mute); font-size:24px;">📷</div>
+          <img id="p2" style="display:none">
+        </div>
+        <div class="upload-label" style="text-align:center;">Image 2 (Back)</div>
+      </div>
+      <div>
+        <div class="upload-box" onclick="document.getElementById('f3').click()">
+          <input type="file" id="f3" accept="image/*" style="display:none" onchange="handleImageUpload(this, 'img3')">
+          <div id="txt3" style="color:var(--mute); font-size:24px;">📷</div>
+          <img id="p3" style="display:none">
+        </div>
+        <div class="upload-label" style="text-align:center;">Image 3 (Side)</div>
+      </div>
+    </div>
+
+    <button class="btn" style="margin-top:15px; width:100%" onclick="addModel()">Save Model</button>
+  </div>
+
+  <div class="db-panel ${currentTab==='price'?'active':''}">
+    <h3>Price Updates</h3>
+    <input type="text" class="db-search" id="searchPrice" placeholder="Search model name..." oninput="priceSearch=this.value; loadDatabase()" value="${esc(priceSearch)}">
+    
+    <div class="price-list">
+      ${allVariants
+        .filter(v => {
+          const model = allModels.find(m => m.id === v.model_id);
+          if(!model) return false;
+          return model.model.toLowerCase().includes(priceSearch.toLowerCase());
+        })
+        .map(v => {
+          const model = allModels.find(m => m.id === v.model_id);
+          return `
+          <div class="price-item" onclick="editPricePopup('${v.id}')">
+            <div class="price-item-info">
+              <b>${esc(model.model)}</b>
+              <small>Variant: ${esc(v.variant || 'N/A')}</small>
+            </div>
+            <div class="price-item-amount">${rs(v.price)}</div>
+          </div>`;
+        }).join('') || '<p style="text-align:center; color:var(--mute);">No models found.</p>'}
+    </div>
+  </div>
+  `;
+
+  renderApp('Database', html);
+}
+
+function switchTab(tab) { currentTab = tab; loadDatabase(); }
+
+async function addBrand() {
+  const b = v('new_brand').trim();
+  if(!b) return alert('Please enter a brand name');
+  if(allBrands.some(x => x.brand.toLowerCase() === b.toLowerCase())) return alert('This brand already exists');
+  
+  try {
+    const { error } = await supabaseClient.from('brands').insert([{ brand: b }]);
+    if(error) throw error;
+    alert('Brand added!');
+    loadDatabase();
+  } catch (err) { alert('Error: ' + err.message); }
+}
+
+let longPressTimer;
+function startLongPress(id, name) {
+  longPressTimer = setTimeout(() => {
+    const newName = prompt('Edit Brand Name:', name);
+    if(newName && newName.trim() !== '' && newName.trim() !== name) {
+      updateBrand(id, newName.trim());
+    }
+  }, 800);
+}
+function cancelLongPress() { clearTimeout(longPressTimer); }
+async function updateBrand(id, newName) {
+  try {
+    const { error } = await supabaseClient.from('brands').update({ brand: newName }).eq('id', id);
+    if(error) throw error;
+    alert('Brand updated!');
+    loadDatabase();
+  } catch(err) { alert('Error: ' + err.message); }
+}
+
+async function handleImageUpload(input, key) {
+  const file = input.files[0];
+  if(!file) return;
+
+  const num = key.replace('img','');
+  const preview = document.getElementById('p'+num);
+  const txt = document.getElementById('txt'+num);
+  
+  const resizedBlob = await resizeImage(file, 800);
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    preview.src = e.target.result;
+    preview.style.display = 'block';
+    txt.style.display = 'none';
+  };
+  reader.readAsDataURL(resizedBlob);
+
+  const fileName = `products/${Date.now()}_${num}.webp`;
+  const { data, error } = await supabaseClient.storage.from('product-images').upload(fileName, resizedBlob, { contentType: 'image/webp' });
+  
+  if(error) {
+    alert('Image upload error: ' + error.message);
+    return;
+  }
+  
+  const { data: urlData } = supabaseClient.storage.from('product-images').getPublicUrl(fileName);
+  uploadedImages[key] = urlData.publicUrl;
+}
+
+function resizeImage(file, maxWidth) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = (e) => { img.src = e.target.result; };
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => resolve(blob), 'image/webp', 0.8);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function addModel() {
+  const brandId = v('m_brand');
+  const name = v('m_name').trim();
+  const variant = v('m_variant').trim();
+  const price = +v('m_price');
+  const specs = v('m_specs').trim();
+  const img1 = uploadedImages.img1;
+  const img2 = uploadedImages.img2;
+  const img3 = uploadedImages.img3;
+
+  if(!brandId || !name || price <= 0) return alert('Please fill Brand, Model Name and Price');
+  if(!img1) return alert('Please upload Image 1');
+
+  try {
+    let modelId = null;
+    const existingModel = allModels.find(m => m.model.toLowerCase() === name.toLowerCase() && m.brand_id == brandId);
+    
+    if(existingModel) {
+      modelId = existingModel.id;
+    } else {
+      const { data: newModel, error: mErr } = await supabaseClient.from('models').insert([{ brand_id: brandId, model: name }]).select();
+      if(mErr) throw mErr;
+      modelId = newModel[0].id;
     }
 
-    let html = '';
-    allVariants.forEach(v => {
-      const model = allModels.find(m => m.id === v.model_id);
-      if(!model) return;
-      const brand = allBrands.find(b => b.id === model.brand_id);
-      
-      const brandName = brand ? brand.brand : 'Unknown';
-      const modelName = model.model;
-      const variantName = v.variant || 'Standard';
-      const price = v.price || 0;
-      
-      html += `<tr>
-        <td>${esc(brandName)}</td>
-        <td>${esc(modelName)}</td>
-        <td>${esc(variantName)}</td>
-        <td>${rs(price)}</td>
-        <td>
-          <button class="btn sm sec" onclick="editProduct('${v.id}')">Edit</button>
-          <button class="btn sm red" onclick="deleteProduct('${v.id}')">Del</button>
-        </td>
-      </tr>`;
-    });
+    const { error: vErr } = await supabaseClient.from('variants').insert([{
+      model_id: modelId,
+      variant: variant,
+      price: price,
+      image_link: img1,
+      image_link_2: img2,
+      image_link_3: img3,
+      specs: specs
+    }]);
+    if(vErr) throw vErr;
 
-    tableBody.innerHTML = html;
-
+    alert('Model with 3 images added!');
+    uploadedImages = { img1: '', img2: '', img3: '' }; 
+    loadDatabase();
   } catch (err) {
-    console.error(err);
-    tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--bad);">Error: ${err.message}</td></tr>`;
+    alert('Error: ' + err.message);
   }
 }
 
-function loadProducts() {
-  let html = `
-  <div class="top">
-    <h2>Products (Database)</h2>
-    <button class="btn" onclick="prodM()">+ Add Product</button>
-  </div>
-  <div class="tw">
-    <table>
-      <thead>
-        <tr><th>Brand</th><th>Model</th><th>Variant</th><th>Price</th><th>Actions</th></tr>
-      </thead>
-      <tbody id="productTableBody">
-        <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
-      </tbody>
-    </table>
-  </div>`;
+function editPricePopup(id) {
+  const vItem = allVariants.find(x => x.id === id);
+  if(!vItem) return;
 
-  renderApp('Products', html);
-  loadProductsFromSupabase();
-}
-
-function prodM(id) {
-  if(id) return alert("Edit feature coming soon!");
-  const brandOptions = allBrands.map(b => `<option value="${b.id}">${esc(b.brand)}</option>`).join('');
   let html = `
-    <h3>Add New Product</h3>
-    <label>Select Brand</label>
-    <select id="p_brand">${brandOptions}</select>
-    <label>Model Name</label>
-    <input id="p_model" placeholder="e.g. Galaxy A15">
-    <label>Variant (RAM/Storage)</label>
-    <input id="p_variant" placeholder="e.g. 8GB/128GB">
-    <label>Price (Rs)</label>
-    <input id="p_price" type="number" placeholder="0">
-    <label>Stock Quantity</label>
-    <input id="p_stock" type="number" placeholder="0">
-    <label>Image URL (Optional)</label>
-    <input id="p_img" placeholder="https://...">
-    <div style="margin-top:15px; display:flex; gap:10px;">
-      <button class="btn" onclick="saveNewProduct()">Save Product</button>
+    <h3>Update Price</h3>
+    <label>New Price (Rs)</label>
+    <input id="upd_price" type="number" value="${vItem.price}">
+    <div style="margin-top:20px; display:flex; gap:10px;">
+      <button class="btn" onclick="saveNewPrice('${id}')">Save Price</button>
       <button class="btn sec" onclick="modal()">Cancel</button>
     </div>
   `;
   modal(html);
 }
 
-async function saveNewProduct() {
-  const brandId = document.getElementById('p_brand').value;
-  const modelName = document.getElementById('p_model').value.trim();
-  const variant = document.getElementById('p_variant').value.trim();
-  const price = +document.getElementById('p_price').value;
-  const stock = +document.getElementById('p_stock').value;
-  const img = document.getElementById('p_img').value.trim();
-
-  if(!brandId || !modelName || !price) return alert('Brand, Model and Price are required');
-
-  try {
-    let modelId = null;
-    const existingModel = allModels.find(m => m.model === modelName && m.brand_id == brandId);
-    if(existingModel) {
-      modelId = existingModel.id;
-    } else {
-      const { data: newModel, error: mErr } = await supabaseClient.from('models').insert([{ brand_id: brandId, model: modelName }]).select();
-      if(mErr) throw mErr;
-      modelId = newModel[0].id;
+async function saveNewPrice(id) {
+  const newPrice = +v('upd_price');
+  if(newPrice > 0) {
+    try {
+      const { error } = await supabaseClient.from('variants').update({ price: newPrice }).eq('id', id);
+      if(error) throw error;
+      modal();
+      loadDatabase();
+    } catch(err) {
+      alert('Error updating price: ' + err.message);
     }
-
-    const { error: vErr } = await supabaseClient.from('variants').insert([{
-      model_id: modelId, variant: variant, price: price, stock: stock, image_link: img
-    }]);
-    if(vErr) throw vErr;
-
-    alert('Product added successfully!');
-    modal();
-    loadProducts();
-  } catch (err) {
-    alert('Error: ' + err.message);
+  } else {
+    alert('Please enter a valid price.');
   }
 }
 
-async function deleteProduct(id) {
-  if(confirm('Delete this product?')) {
-    const { error } = await supabaseClient.from('variants').delete().eq('id', id);
-    if(error) return alert('Delete Error: ' + error.message);
-    loadProducts();
-  }
-}
-
-function editProduct(id) { alert("Coming soon!"); }
-
-loadProducts();
+loadDatabase();
 </script>
 </body>
 </html>
