@@ -1,6 +1,20 @@
 const K='adeelmobile_v3',uid=()=>Math.random().toString(36).slice(2,9);
+
+// --- SUPABASE CONNECTION START ---
+const SB_URL = 'https://nqihozwbdrvpyalctwbc.supabase.co';
+const SB_KEY = 'sb_publishable_KQG5u2pwI4QjgYMZsJ97Kw_sTPH1OeL';
+let supabase = null;
+try {
+  if (window.supabase) {
+    supabase = window.supabase.createClient(SB_URL, SB_KEY);
+    console.log('Supabase connected successfully!');
+  }
+} catch(e) {
+  console.log('Supabase connection error:', e);
+}
+// --- SUPABASE CONNECTION END ---
+
 const seed=()=>({
-  // Yahan nfs:15 add kiya gaya hai
   settings:{shop:'Adeel Mobile',phone:'0321-4265688',addr:'411 Chowk Shalamar, Shalimar Link Road, Lahore',markup:20,theme:'classic',fs:15,hfs:22,sfs:18,lfs:13,nfs:15},
   users:[{id:'u0',name:'Administrator',username:'admin',pass:'admin123',role:'admin',phone:'',active:true,biz:'',addr:'',target:0,brandMarkup:{},wallet:0}],
   products:[
