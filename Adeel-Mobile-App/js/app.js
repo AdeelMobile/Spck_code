@@ -21,12 +21,10 @@ function showDebug(msg, color) {
 // Library check aur load function
 function initSupabase() {
   if (window.supabase) {
-    // Library pehle se load hai
     supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
     console.log('Supabase connected successfully!');
     testConnection();
   } else {
-    // Library load nahi hai, khud load karo
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
     script.onload = () => {
@@ -44,14 +42,14 @@ function initSupabase() {
 // Page load hote hi Supabase check karo
 window.addEventListener('load', initSupabase);
 
-// Connection Test
+// Connection Test (Yahan 'products' ki jagah 'models' kiya gaya hai)
 async function testConnection() {
   if(!supabaseClient) {
     showDebug("❌ Client mojood nahi hai!", "#ef4444");
     return;
   }
   try {
-    const { data, error } = await supabaseClient.from('products').select('*').limit(1);
+    const { data, error } = await supabaseClient.from('models').select('*').limit(1);
     
     if(error) {
       showDebug("⚠️ Connection Hua, Lekin Error: " + error.message, "#f59e0b");
