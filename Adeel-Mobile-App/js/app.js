@@ -1,20 +1,25 @@
 const K='adeelmobile_v3',uid=()=>Math.random().toString(36).slice(2,9);
 
-// --- SUPABASE CONNECTION START ---
+// --- SUPABASE SETUP START ---
 const SB_URL = 'https://nqihozwbdrvpyalctwbc.supabase.co';
 const SB_KEY = 'sb_publishable_KQG5u2pwI4QjgYMZsJ97Kw_sTPH1OeL';
 let supabase = null;
-try {
-  if (window.supabase) {
+
+// Library ko dynamically load karna
+const script = document.createElement('script');
+script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+script.onload = () => {
+  try {
     supabase = window.supabase.createClient(SB_URL, SB_KEY);
     console.log('Supabase connected successfully!');
+  } catch(e) {
+    console.log('Supabase connection error:', e);
   }
-} catch(e) {
-  console.log('Supabase connection error:', e);
-}
-// --- SUPABASE CONNECTION END ---
+};
+document.head.appendChild(script);
+// --- SUPABASE SETUP END ---
 
-// Debug Box function
+// Debug Box (Screen par status dikhane ke liye)
 function showDebug(msg, color) {
   let dbg = document.getElementById('debug-box');
   if(!dbg) {
@@ -24,7 +29,7 @@ function showDebug(msg, color) {
     document.body.appendChild(dbg);
   }
   dbg.innerText = msg;
-  setTimeout(() => { if(dbg) dbg.remove(); }, 8000); // 8 second baad gayab ho jayega
+  setTimeout(() => { if(dbg) dbg.remove(); }, 10000); // 10 second baad gayab ho jayega
 }
 
 const seed=()=>({
@@ -75,7 +80,7 @@ function logout(){
   window.location.href='index.html';
 }
 
-// --- TEST CONNECTION ON LOAD ---
+// --- TEST CONNECTION ---
 setTimeout(async () => {
   if(!supabase) {
     showDebug("❌ Supabase Library Load Nahi Hui!", "#ef4444");
@@ -83,7 +88,6 @@ setTimeout(async () => {
   }
   
   try {
-    // Ims_settings table se 1 row fetch karne ki koshish
     const { data, error } = await supabase.from('ims_settings').select('*').limit(1);
     
     if(error) {
@@ -94,4 +98,4 @@ setTimeout(async () => {
   } catch (err) {
     showDebug("❌ Error: " + err.message, "#ef4444");
   }
-}, 2000); // 2 second baad test karega
+}, 3000); // 3 second baad test karega (library load hone ka waqt)

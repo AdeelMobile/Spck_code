@@ -18,6 +18,10 @@
 </head>
 <body>
 <div id="root"></div>
+
+<!-- Supabase Library Add Ki Gayi Hai -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script src="js/app.js"></script>
 <script>
 if(me) window.location.href='my-store.html';
@@ -39,6 +43,7 @@ function doLogin(){
 
   me = u;
   try{ sessionStorage.setItem('am_s', u.id); }catch(e){}
+  
   window.location.href = 'my-store.html';
 }
 
@@ -50,7 +55,7 @@ function togglePass(){
 }
 
 function forgotPass(){
-  alert('Forgot password?\n\nPlease contact your Administrator.\n\n(Admin: ' + D.settings.phone + ')');
+  alert('Forgot password?\n\nPlease contact your Administrator, they will provide a new password.\n\n(Admin: ' + D.settings.phone + ')');
 }
 
 let savedUser = '';
