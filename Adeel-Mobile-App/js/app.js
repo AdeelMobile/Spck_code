@@ -23,14 +23,14 @@ function initSupabase() {
   if (window.supabase) {
     supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
     console.log('Supabase connected successfully!');
-    testConnection();
+    fetchTestData(); // Ab test data fetch karenge
   } else {
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
     script.onload = () => {
       supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
       console.log('Supabase connected successfully (auto loaded)!');
-      testConnection();
+      fetchTestData();
     };
     script.onerror = () => {
       showDebug("❌ Library Load Nahi Hui (Network Error)!", "#ef4444");
@@ -39,25 +39,33 @@ function initSupabase() {
   }
 }
 
-// Page load hote hi Supabase check karo
 window.addEventListener('load', initSupabase);
 
-// Connection Test (Yahan 'products' ki jagah 'models' kiya gaya hai)
-async function testConnection() {
-  if(!supabaseClient) {
-    showDebug("❌ Client mojood nahi hai!", "#ef4444");
-    return;
-  }
+// --- DATA FETCH TEST ---
+async function fetchTestData() {
+  if(!supabaseClient) return;
+  
   try {
-    const { data, error } = await supabaseClient.from('models').select('*').limit(1);
-    
-    if(error) {
-      showDebug("⚠️ Connection Hua, Lekin Error: " + error.message, "#f59e0b");
-    } else {
-      showDebug("✅ Supabase Successfully Connected!", "#10b981");
+    // 1. Models fetch karo
+    const { data: models, error: mErr } = await supabaseClient.from('models').select('*').limit(5);
+    if(mErr) throw mErr;
+
+    // 2. Variants fetch karo
+    const { data: variants, error: vErr } = await supabaseClient.from('variants').select('*').limit(5);
+    if(vErr) throw vErr;
+
+    // 3. Browser Console mein data print karo
+    console.log("--- MODELS DATA ---", models);
+    console.log("--- VARIANTS DATA ---", variants);
+
+    // 4. Agar data mil gaya to Debug Box mein show karo
+    if(models && variants) {
+      showDebug(`✅ Data Mil Gaya! Models: ${models.length}, Variants: ${variants.length}`, "#10b981");
     }
+
   } catch (err) {
-    showDebug("❌ Error: " + err.message, "#ef4444");
+    console.error(err);
+    showDebug("⚠️ Data Fetch Error: " + err.message, "#f59e0b");
   }
 }
 // --- SUPABASE SETUP END ---
