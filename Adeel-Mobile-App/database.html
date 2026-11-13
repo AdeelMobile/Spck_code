@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Database - Adeel Mobile</title>
+<!-- Supabase Library Add Ki Gayi Hai -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="css/style.css">
 <style>
   /* Top Buttons (Tabs) */
@@ -52,11 +54,27 @@ if(me.role!=='admin') window.location.href='dashboard.html';
 
 let currentTab = 'brand'; // Default tab
 let priceSearch = '';
+let allBrands = [];
+let allModels = [];
+let allVariants = [];
 
-function getBrands() { return [...new Set(D.products.map(p => p.brand))]; }
+// Naya function: Supabase se data fetch karne ke liye
+async function fetchDatabaseData() {
+  try {
+    const { data: brands } = await supabaseClient.from('brands').select('*');
+    const { data: models } = await supabaseClient.from('models').select('*');
+    const { data: variants } = await supabaseClient.from('variants').select('*');
+    allBrands = brands || [];
+    allModels = models || [];
+    allVariants = variants || [];
+  } catch (err) {
+    console.error(err);
+    alert("Data fetch error: " + err.message);
+  }
+}
 
-function loadDatabase() {
-  const brands = getBrands();
+async function loadDatabase() {
+  await fetchDatabaseData(); // Pehle data fetch karo
 
   let html = `
   <div class="top"><h2>Master Database</h2></div>
@@ -77,7 +95,7 @@ function loadDatabase() {
       <button class="btn" onclick="addBrand()">Add</button>
     </div>
     <div class="brand-list">
-      ${brands.map(b => `<div class="brand-tag">${esc(b)} <span onclick="deleteBrand('${esc(b)}')">×</span></div>`).join('')}
+      ${allBrands.map(b => `<div class="brand-tag">${esc(b.brand)} <span onclick="deleteBrand('${b.id}')">×</span></div>`).join('')}
     </div>
   </div>
 
@@ -86,7 +104,7 @@ function loadDatabase() {
     <h3>Add New Model & Variant</h3>
     <label>Select Brand</label>
     <select id="m_brand">
-      ${brands.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('') || '<option value="">No brands added yet</option>'}
+      ${allBrands.map(b => `<option value="${b.id}">${esc(b.brand)}</option>`).join('') || '<option value="">No brands added yet</option>'}
     </select>
     <label>Model Name</label>
     <input id="m_name" placeholder="e.g. Galaxy A15">
@@ -96,22 +114,13 @@ function loadDatabase() {
     <input id="m_price" type="number" placeholder="0">
     <label>Image URL (Optional)</label>
     <input id="m_img" placeholder="https://...">
-    <label>Specifications</label>
-    <textarea id="m_specs" rows="3" placeholder="e.g. 6.5 inch screen, 50MP Camera..."></textarea>
     <button class="btn" style="margin-top:15px; width:100%" onclick="addModel()">Save Model</button>
   </div>
 
   <!-- 3. Bulk Upload Panel -->
   <div class="db-panel ${currentTab==='bulk'?'active':''}">
-    <h3>Bulk Upload</h3>
-    <label>Bulk Images (Paste Image URLs, 1 per line)</label>
-    <textarea id="bulk_imgs" rows="4" placeholder="https://img1.jpg&#10;https://img2.jpg&#10;https://img3.jpg"></textarea>
-    
-    <label style="margin-top:10px;">Bulk Specs (Separate each block with --- )</label>
-    <textarea id="bulk_specs" rows="4" placeholder="Specs for Model 1&#10;---&#10;Specs for Model 2&#10;---&#10;Specs for Model 3"></textarea>
-    
-    <button class="btn sec" style="margin-top:15px; width:100%; border: 2px dashed var(--warn); color: var(--warn);" onclick="bulkUpload()">Process Bulk Data</button>
-    <p class="hint" style="margin-top:8px; text-align:center;">Will auto-apply to recent models without images/specs.</p>
+    <h3>Bulk Upload (Coming Soon)</h3>
+    <p class="hint">Filhal ye feature Supabase ke sath kaam nahi karta. Agli update mein aayega.</p>
   </div>
 
   <!-- 4. Price Update Panel -->
@@ -120,20 +129,25 @@ function loadDatabase() {
     <input type="text" class="db-search" id="searchPrice" placeholder="Search model name..." oninput="priceSearch=this.value; loadDatabase()" value="${esc(priceSearch)}">
     
     <div class="price-list">
-      ${D.products
-        .filter(p => (p.brand + ' ' + p.name).toLowerCase().includes(priceSearch.toLowerCase()))
-        .map(p => `
-        <div class="price-item" onclick="editPricePopup('${p.id}')">
-          <div class="price-item-info">
-            <b>${esc(p.brand)} ${esc(p.name)}</b>
-            <small>Variant: ${esc(p.variant || 'N/A')}</small>
-          </div>
-          <div class="price-item-amount">${rs(p.price)}</div>
-        </div>
-      `).join('') || '<p style="text-align:center; color:var(--mute);">No models found.</p>'}
+      ${allVariants
+        .filter(v => {
+          const model = allModels.find(m => m.id === v.model_id);
+          if(!model) return false;
+          return model.model.toLowerCase().includes(priceSearch.toLowerCase());
+        })
+        .map(v => {
+          const model = allModels.find(m => m.id === v.model_id);
+          return `
+          <div class="price-item" onclick="editPricePopup('${v.id}')">
+            <div class="price-item-info">
+              <b>${esc(model.model)}</b>
+              <small>Variant: ${esc(v.variant || 'N/A')}</small>
+            </div>
+            <div class="price-item-amount">${rs(v.price)}</div>
+          </div>`;
+        }).join('') || '<p style="text-align:center; color:var(--mute);">No models found.</p>'}
     </div>
   </div>
-
   `;
 
   renderApp('Database', html);
@@ -146,97 +160,102 @@ function switchTab(tab) {
 
 // --- Actions ---
 
-function addBrand() {
+async function addBrand() {
   const b = v('new_brand').trim();
   if(!b) return alert('Please enter a brand name');
-  if(getBrands().includes(b)) return alert('This brand already exists');
+  if(allBrands.some(x => x.brand.toLowerCase() === b.toLowerCase())) return alert('This brand already exists');
   
-  D.products.push({ id: uid(), brand: b, name: 'Temp', price: 0, stock: 0, variant: '', specs: '', img: '' });
-  save();
-  loadDatabase();
-}
-
-function deleteBrand(brand) {
-  if(confirm(`Delete brand "${brand}" and all its models?`)) {
-    D.products = D.products.filter(p => p.brand !== brand);
-    save();
+  try {
+    const { error } = await supabaseClient.from('brands').insert([{ brand: b }]);
+    if(error) throw error;
+    
+    alert('Brand added to Supabase!');
     loadDatabase();
+  } catch (err) {
+    alert('Error: ' + err.message);
   }
 }
 
-function addModel() {
-  const brand = v('m_brand');
+async function deleteBrand(id) {
+  if(confirm(`Delete this brand and all its models?`)) {
+    try {
+      const { error } = await supabaseClient.from('brands').delete().eq('id', id);
+      if(error) throw error;
+      loadDatabase();
+    } catch(err) {
+      alert('Error: ' + err.message);
+    }
+  }
+}
+
+async function addModel() {
+  const brandId = v('m_brand');
   const name = v('m_name').trim();
   const variant = v('m_variant').trim();
   const price = +v('m_price');
   const img = v('m_img').trim();
-  const specs = v('m_specs').trim();
 
-  if(!brand || !name || price <= 0) return alert('Please fill Brand, Model Name and Price');
+  if(!brandId || !name || price <= 0) return alert('Please fill Brand, Model Name and Price');
 
-  D.products.push({
-    id: uid(), brand: brand, name: name, variant: variant,
-    price: price, img: img, specs: specs, stock: 0
-  });
-  
-  save();
-  alert('Model saved successfully!');
-  loadDatabase();
-}
+  try {
+    // 1. Model add karo (Agar pehle se nahi hai)
+    let modelId = null;
+    const existingModel = allModels.find(m => m.model.toLowerCase() === name.toLowerCase() && m.brand_id == brandId);
+    
+    if(existingModel) {
+      modelId = existingModel.id;
+    } else {
+      const { data: newModel, error: mErr } = await supabaseClient.from('models').insert([{ brand_id: brandId, model: name }]).select();
+      if(mErr) throw mErr;
+      modelId = newModel[0].id;
+    }
 
-// Bulk Upload Logic
-function bulkUpload() {
-  const imgsText = v('bulk_imgs').trim();
-  const specsText = v('bulk_specs').trim();
+    // 2. Variant add karo
+    const { error: vErr } = await supabaseClient.from('variants').insert([{
+      model_id: modelId,
+      variant: variant,
+      price: price,
+      image_link: img
+    }]);
+    if(vErr) throw vErr;
 
-  if(!imgsText && !specsText) return alert('Please paste data to bulk upload.');
-
-  const imgs = imgsText ? imgsText.split('\n').map(i => i.trim()).filter(i => i) : [];
-  const specs = specsText ? specsText.split('---').map(s => s.trim()).filter(s => s) : [];
-
-  let appliedCount = 0;
-  for(let i=0; i<D.products.length; i++) {
-    let p = D.products[i];
-    if(imgs.length > 0 && !p.img) { p.img = imgs.shift(); appliedCount++; }
-    if(specs.length > 0 && !p.specs) { p.specs = specs.shift(); appliedCount++; }
-    if(imgs.length === 0 && specs.length === 0) break;
-  }
-
-  if(appliedCount > 0) {
-    save();
-    alert(`${appliedCount} items updated via bulk upload!`);
+    alert('Model & Variant added to Supabase!');
     loadDatabase();
-  } else {
-    alert('No empty products to apply this data to.');
+
+  } catch (err) {
+    alert('Error: ' + err.message);
   }
 }
 
 // Price Update Popup
 function editPricePopup(id) {
-  const p = D.products.find(x => x.id === id);
-  if(!p) return;
+  const vItem = allVariants.find(x => x.id === id);
+  if(!vItem) return;
 
   let html = `
     <h3>Update Price</h3>
-    <p style="color:var(--mute); margin-bottom:15px;">${esc(p.brand)} ${esc(p.name)} (${esc(p.variant || 'N/A')})</p>
     <label>New Price (Rs)</label>
-    <input id="upd_price" type="number" value="${p.price}">
+    <input id="upd_price" type="number" value="${vItem.price}">
     <div style="margin-top:20px; display:flex; gap:10px;">
-      <button class="btn" onclick="saveNewPrice('${p.id}')">Save Price</button>
+      <button class="btn" onclick="saveNewPrice('${id}')">Save Price</button>
       <button class="btn sec" onclick="modal()">Cancel</button>
     </div>
   `;
   modal(html);
 }
 
-function saveNewPrice(id) {
-  const p = D.products.find(x => x.id === id);
+async function saveNewPrice(id) {
   const newPrice = +v('upd_price');
-  if(p && newPrice > 0) {
-    p.price = newPrice;
-    save();
-    modal();
-    loadDatabase();
+  if(newPrice > 0) {
+    try {
+      const { error } = await supabaseClient.from('variants').update({ price: newPrice }).eq('id', id);
+      if(error) throw error;
+      
+      modal();
+      loadDatabase();
+    } catch(err) {
+      alert('Error updating price: ' + err.message);
+    }
   } else {
     alert('Please enter a valid price.');
   }
