@@ -45,22 +45,19 @@
   .price-item-info small { display: block; font-size: 12px; color: var(--mute); margin-top: 2px; }
   .price-item-amount { font-weight: 700; color: var(--pri); font-size: 15px; }
 
-  /* --- Naya CSS Image Upload ke liye --- */
-  .image-preview-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; margin-top: 10px;
-  }
-  .img-preview-box {
-    position: relative; border: 2px solid var(--line); border-radius: 8px; overflow: hidden; aspect-ratio: 1;
-    display: flex; align-items: center; justify-content: center; background: #f0f0f0;
-  }
+  /* --- Image Upload CSS --- */
+  .image-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; margin-top: 10px; }
+  .img-preview-box { position: relative; border: 2px solid var(--line); border-radius: 8px; overflow: hidden; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #f0f0f0; }
   .img-preview-box.cover-selected { border-color: var(--pri); box-shadow: 0 0 5px rgba(0,0,0,0.2); }
   .img-preview-box img { width: 100%; height: 100%; object-fit: cover; }
-  .cover-badge {
-    position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: #fff;
-    font-size: 10px; text-align: center; padding: 3px 0; cursor: pointer;
-  }
+  .cover-badge { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; text-align: center; padding: 3px 0; cursor: pointer; }
   .cover-selected .cover-badge { background: var(--pri); }
   .upload-loading { text-align: center; color: var(--pri); font-weight: bold; margin-top: 10px; display: none; }
+  
+  /* Modal Specific */
+  .modal-content { max-height: 85vh; overflow-y: auto; padding-bottom: 20px; }
+  .action-btn { display: block; width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--line); background: #fff; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
+  .action-btn:active { background: var(--bg); }
 </style>
 </head>
 <body>
@@ -76,12 +73,12 @@ let priceSearch = '';
 let allBrands = [];
 let allModels = [];
 let allVariants = [];
-let pressTimer; 
+let pressTimer; // Brand edit long press ke liye (pehle se chal raha hai)
 
-// Naye variables Images ke liye
-let selectedFiles = []; // Actual File objects
-let previewUrls = [];   // Base64 URLs for preview
-let coverIndex = 0;     // Default pehli image cover hogi
+// Variables for Add/Edit Images
+let selectedFiles = []; 
+let previewUrls = [];   
+let coverIndex = 0;     
 
 async function fetchDatabaseData() {
   try {
@@ -107,7 +104,7 @@ async function loadDatabase() {
     <button class="db-tab-btn ${currentTab==='brand'?'active':''}" onclick="switchTab('brand')">🏷️ Add Brand</button>
     <button class="db-tab-btn ${currentTab==='model'?'active':''}" onclick="switchTab('model')">📱 Add Model</button>
     <button class="db-tab-btn ${currentTab==='bulk'?'active':''}" onclick="switchTab('bulk')">📦 Bulk Upload</button>
-    <button class="db-tab-btn ${currentTab==='price'?'active':''}" onclick="switchTab('price')">💰 Price Update</button>
+    <button class="db-tab-btn ${currentTab==='price'?'active':''}" onclick="switchTab('price')">💰 Update Product</button>
   </div>
 
   <!-- 1. Add Brand Panel -->
@@ -145,11 +142,10 @@ async function loadDatabase() {
     <label>Price (Rs)</label>
     <input id="m_price" type="number" placeholder="0">
     
-    <!-- Naya Image Upload Section -->
     <label>Product Images (Multiple select karein)</label>
-    <input type="file" id="m_images" accept="image/*" multiple onchange="handleImageSelect(event)" style="padding: 10px; background: #fff; border: 1px dashed var(--pri);">
-    <div id="image_preview_container" class="image-preview-grid"></div>
-    <p id="upload_status" class="upload-loading">Uploading images, please wait...</p>
+    <input type="file" id="m_images" accept="image/*" multiple onchange="handleImageSelect(event, 'add')" style="padding: 10px; background: #fff; border: 1px dashed var(--pri);">
+    <div id="add_image_preview" class="image-preview-grid"></div>
+    <p id="add_upload_status" class="upload-loading">Uploading images, please wait...</p>
 
     <button class="btn" style="margin-top:15px; width:100%" onclick="addModel()">Save Model</button>
   </div>
@@ -160,9 +156,10 @@ async function loadDatabase() {
     <p class="hint">Filhal ye feature Supabase ke sath kaam nahi karta. Agli update mein aayega.</p>
   </div>
 
-  <!-- 4. Price Update Panel -->
+  <!-- 4. Price Update Panel (Now Update Product) -->
   <div class="db-panel ${currentTab==='price'?'active':''}">
-    <h3>Price Updates</h3>
+    <h3>Update Products</h3>
+    <p style="font-size: 11px; color: var(--mute); margin-bottom: 10px;">(Tip: Kisi bhi model par click karein Edit/Delete ke liye)</p>
     <input type="text" class="db-search" id="searchPrice" placeholder="Search model name..." oninput="priceSearch=this.value; loadDatabase()" value="${esc(priceSearch)}">
     
     <div class="price-list">
@@ -175,7 +172,7 @@ async function loadDatabase() {
         .map(v => {
           const model = allModels.find(m => m.id === v.model_id);
           return `
-          <div class="price-item" onclick="editPricePopup('${v.id}')">
+          <div class="price-item" onclick="openActionMenu('${v.id}')">
             <div class="price-item-info">
               <b>${esc(model.model)}</b>
               <small>Variant: ${esc(v.variant || 'N/A')}</small>
@@ -208,7 +205,6 @@ async function addBrand() {
   try {
     const { error } = await supabaseClient.from('brands').insert([{ brand: b }]);
     if(error) throw error;
-    
     alert('Brand added to Supabase!');
     loadDatabase();
   } catch (err) {
@@ -219,7 +215,6 @@ async function addBrand() {
 function startPress(id, currentName) {
   pressTimer = setTimeout(() => { editBrandPrompt(id, currentName); }, 600); 
 }
-
 function cancelPress() { clearTimeout(pressTimer); }
 
 function editBrandPrompt(id, oldName) {
@@ -240,18 +235,51 @@ async function updateBrandName(id, newName) {
   }
 }
 
+// --- ACTION MENU (Click par) ---
+function openActionMenu(variantId) {
+  const variant = allVariants.find(x => x.id === variantId);
+  if(!variant) return;
+  const model = allModels.find(m => m.id === variant.model_id);
+  
+  let html = `
+    <div style="padding: 10px;">
+      <h3 style="margin-bottom: 5px;">${esc(model ? model.model : 'Unknown')}</h3>
+      <p style="color: gray; font-size: 13px; margin-bottom: 20px;">${esc(variant.variant || 'No Variant')} | Rs ${rs(variant.price)}</p>
+      
+      <button class="action-btn" onclick="openEditPopup('${variantId}')">✏️ Edit Product</button>
+      <button class="action-btn" style="color: red;" onclick="deleteProduct('${variantId}')">❌ Delete Product</button>
+      <button class="action-btn" style="text-align: center; margin-top: 10px; background: var(--bg);" onclick="modal()">Cancel</button>
+    </div>
+  `;
+  modal(html);
+}
+
+// Delete Product Function
+async function deleteProduct(variantId) {
+  if(confirm("Kya aap waqai ye product delete karna chahte hain?")) {
+    try {
+      const { error } = await supabaseClient.from('variants').delete().eq('id', variantId);
+      if(error) throw error;
+      
+      alert('Product deleted successfully!');
+      modal(); // Close popup
+      loadDatabase(); // Refresh list
+    } catch(err) {
+      alert('Error deleting product: ' + err.message);
+    }
+  }
+}
+
 // --- IMAGE HANDLING LOGIC ---
 
-// 1. File Select hone par preview aur resize save karna
-function handleImageSelect(event) {
+function handleImageSelect(event, type) {
   const files = Array.from(event.target.files);
   if (files.length === 0) return;
 
-  selectedFiles = []; // Reset
+  selectedFiles = []; 
   previewUrls = [];
   
   files.forEach(file => {
-    // Canvas se auto resize karna (Max 800px width/height)
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
@@ -259,7 +287,7 @@ function handleImageSelect(event) {
         const canvas = document.createElement('canvas');
         let width = img.width;
         let height = img.height;
-        const maxSize = 800; // 800px se bada nahi hoga
+        const maxSize = 800; 
 
         if (width > height) {
           if (width > maxSize) { height *= maxSize / width; width = maxSize; }
@@ -272,16 +300,14 @@ function handleImageSelect(event) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Resized image ko blob mein convert karna (Upload ke liye)
         canvas.toBlob((blob) => {
           const resizedFile = new File([blob], file.name, { type: 'image/jpeg' });
           selectedFiles.push(resizedFile);
-          previewUrls.push(canvas.toDataURL('image/jpeg', 0.8)); // Preview ke liye
+          previewUrls.push(canvas.toDataURL('image/jpeg', 0.8)); 
           
-          // Jab sari images process ho jayein, preview show karo
           if (selectedFiles.length === files.length) {
-            coverIndex = 0; // Default pehli image cover
-            renderImagePreviews();
+            coverIndex = 0; 
+            renderImagePreviews(type);
           }
         }, 'image/jpeg', 0.8);
       };
@@ -291,57 +317,43 @@ function handleImageSelect(event) {
   });
 }
 
-// 2. Preview Grid Render karna
-function renderImagePreviews() {
-  const container = document.getElementById('image_preview_container');
+function renderImagePreviews(type) {
+  const containerId = type === 'add' ? 'add_image_preview' : 'edit_image_preview';
+  const container = document.getElementById(containerId);
   if (!container) return;
   
   container.innerHTML = previewUrls.map((url, index) => `
     <div class="img-preview-box ${index === coverIndex ? 'cover-selected' : ''}">
       <img src="${url}" alt="preview">
-      <div class="cover-badge" onclick="setCoverImage(${index})">
+      <div class="cover-badge" onclick="setCoverImage(${index}, '${type}')">
         ${index === coverIndex ? '⭐ Cover' : 'Set Cover'}
       </div>
     </div>
   `).join('');
 }
 
-function setCoverImage(index) {
+function setCoverImage(index, type) {
   coverIndex = index;
-  renderImagePreviews();
+  renderImagePreviews(type);
 }
 
-// 3. Supabase Storage mein upload karna
-async function uploadImagesToSupabase(modelName) {
+async function uploadImagesToSupabase() {
   let uploadedUrls = [];
-  
   for (let i = 0; i < selectedFiles.length; i++) {
     const file = selectedFiles[i];
-    // File ka unique naam banana (timestamp ke sath taake overwrite na ho)
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
     
-    // Supabase bucket 'product-images' mein upload
-    const { data, error } = await supabaseClient.storage
-      .from('product-images')
-      .upload(fileName, file);
-
-    if (error) {
-      console.error("Upload error:", error);
-      throw new Error("Image upload failed: " + error.message);
-    }
+    const { data, error } = await supabaseClient.storage.from('product-images').upload(fileName, file);
+    if (error) throw new Error("Image upload failed: " + error.message);
     
-    // Public URL nikalna
-    const { data: urlData } = supabaseClient.storage
-      .from('product-images')
-      .getPublicUrl(fileName);
-      
+    const { data: urlData } = supabaseClient.storage.from('product-images').getPublicUrl(fileName);
     uploadedUrls.push(urlData.publicUrl);
   }
   return uploadedUrls;
 }
 
-
+// --- ADD MODEL ---
 async function addModel() {
   const brandId = v('m_brand');
   const name = v('m_name').trim();
@@ -350,29 +362,19 @@ async function addModel() {
 
   if(!brandId || !name || price <= 0) return alert('Please fill Brand, Model Name and Price');
 
-  const btn = document.querySelector('#root button.btn'); // Save button ko disable karne ke liye
-  const statusEl = document.getElementById('upload_status');
+  const btn = document.querySelector('#root .db-panel.active button.btn'); 
+  const statusEl = document.getElementById('add_upload_status');
   
   try {
     let finalImageUrl = "";
-
-    // Agar images select hui hain toh upload karo
     if (selectedFiles.length > 0) {
       statusEl.style.display = 'block';
       btn.disabled = true;
       btn.innerText = "Uploading...";
-      
-      // Sari images upload karo
-      const urls = await uploadImagesToSupabase(name);
-      
-      // Sirf Cover image ka URL lein (jo user ne select ki)
+      const urls = await uploadImagesToSupabase();
       finalImageUrl = urls[coverIndex] || urls[0];
-
-      // Baqi images ko JSON string bana kar save kar sakte hain future ke liye.
-      // Filhal hum sirf cover image 'image_link' mein save kar rahe hain.
     }
 
-    // 1. Model add karo (Agar pehle se nahi hai)
     let modelId = null;
     const existingModel = allModels.find(m => m.model.toLowerCase() === name.toLowerCase() && m.brand_id == brandId);
     
@@ -384,21 +386,13 @@ async function addModel() {
       modelId = newModel[0].id;
     }
 
-    // 2. Variant add karo (Cover image URL ke sath)
     const { error: vErr } = await supabaseClient.from('variants').insert([{
-      model_id: modelId,
-      variant: variant,
-      price: price,
-      image_link: finalImageUrl
+      model_id: modelId, variant: variant, price: price, image_link: finalImageUrl
     }]);
     if(vErr) throw vErr;
 
     alert('Model & Variant added successfully!');
-    
-    // Reset
-    selectedFiles = [];
-    previewUrls = [];
-    coverIndex = 0;
+    selectedFiles = []; previewUrls = []; coverIndex = 0;
     loadDatabase();
 
   } catch (err) {
@@ -409,40 +403,98 @@ async function addModel() {
   }
 }
 
-// Price Update Popup (Waisa hi hai)
-function editPricePopup(id) {
-  const vItem = allVariants.find(x => x.id === id);
-  if(!vItem) return;
+// --- EDIT PRODUCT POPUP ---
+function openEditPopup(variantId) {
+  const variant = allVariants.find(x => x.id === variantId);
+  if(!variant) return;
+  
+  const model = allModels.find(m => m.id === variant.model_id);
+  if(!model) return;
+  
+  const brand = allBrands.find(b => b.id === model.brand_id);
+  
+  // Reset global image variables for edit
+  selectedFiles = [];
+  previewUrls = [];
+  coverIndex = 0;
 
   let html = `
-    <h3>Update Price</h3>
-    <label>New Price (Rs)</label>
-    <input id="upd_price" type="number" value="${vItem.price}">
-    <div style="margin-top:20px; display:flex; gap:10px;">
-      <button class="btn" onclick="saveNewPrice('${id}')">Save Price</button>
-      <button class="btn sec" onclick="modal()">Cancel</button>
+    <div class="modal-content">
+      <h3>Edit Product</h3>
+      
+      <label>Brand</label>
+      <input value="${esc(brand ? brand.brand : 'Unknown')}" disabled style="background:#f0f0f0;">
+      
+      <label>Model Name</label>
+      <input value="${esc(model.model)}" disabled style="background:#f0f0f0;">
+      
+      <label>Variant (RAM/Storage)</label>
+      <input id="e_variant" value="${esc(variant.variant || '')}">
+      
+      <label>Price (Rs)</label>
+      <input id="e_price" type="number" value="${variant.price}">
+      
+      <label>Current Image</label>
+      <div style="margin-bottom:10px;">
+         ${variant.image_link ? `<img src="${variant.image_link}" style="width:80px; height:80px; object-fit:cover; border-radius:8px; border:1px solid #ccc;">` : '<span style="font-size:12px; color:gray;">No image uploaded</span>'}
+      </div>
+      
+      <label>Upload New Images (To replace)</label>
+      <input type="file" accept="image/*" multiple onchange="handleImageSelect(event, 'edit')" style="padding: 10px; background: #fff; border: 1px dashed var(--pri);">
+      <div id="edit_image_preview" class="image-preview-grid"></div>
+      <p id="edit_upload_status" class="upload-loading">Uploading images, please wait...</p>
+
+      <div style="margin-top:20px; display:flex; gap:10px;">
+        <button class="btn" onclick="saveEditedProduct('${variant.id}', '${variant.image_link || ''}')">Update Product</button>
+        <button class="btn sec" onclick="modal()">Cancel</button>
+      </div>
     </div>
   `;
   modal(html);
 }
 
-async function saveNewPrice(id) {
-  const newPrice = +v('upd_price');
-  if(newPrice > 0) {
-    try {
-      const { error } = await supabaseClient.from('variants').update({ price: newPrice }).eq('id', id);
-      if(error) throw error;
+async function saveEditedProduct(variantId, oldImageUrl) {
+  const newVariant = v('e_variant').trim();
+  const newPrice = +v('e_price');
+  
+  if(newPrice <= 0) return alert('Please enter a valid price');
+  
+  const btn = document.querySelector('.modal-content button.btn');
+  const statusEl = document.getElementById('edit_upload_status');
+  
+  try {
+    let finalImageUrl = oldImageUrl; 
+    
+    if (selectedFiles.length > 0) {
+      statusEl.style.display = 'block';
+      btn.disabled = true;
+      btn.innerText = "Uploading...";
       
-      modal();
-      loadDatabase();
-    } catch(err) {
-      alert('Error updating price: ' + err.message);
+      const urls = await uploadImagesToSupabase();
+      finalImageUrl = urls[coverIndex] || urls[0];
     }
-  } else {
-    alert('Please enter a valid price.');
+
+    const { error } = await supabaseClient.from('variants').update({ 
+      variant: newVariant, 
+      price: newPrice, 
+      image_link: finalImageUrl 
+    }).eq('id', variantId);
+    
+    if(error) throw error;
+
+    alert('Product updated successfully!');
+    modal(); 
+    loadDatabase(); 
+    
+  } catch (err) {
+    alert('Error updating product: ' + err.message);
+    btn.disabled = false;
+    btn.innerText = "Update Product";
+    statusEl.style.display = 'none';
   }
 }
 
+// Initial Load
 loadDatabase();
 </script>
 </body>
