@@ -24,7 +24,6 @@
 
 <script src="js/app.js"></script>
 <script>
-// Agar pehle se login hai (session me) to direct dashboard par bhej dein
 if(me) window.location.href='my-store.html';
 
 async function doLogin(){
@@ -32,7 +31,6 @@ async function doLogin(){
   const pass = v('lp');
   const remember = document.getElementById('rm').checked;
 
-  // Button ko disable karein taake double click na ho
   const btn = document.querySelector('.btn');
   btn.innerText = 'Signing in...';
   btn.disabled = true;
@@ -45,7 +43,7 @@ async function doLogin(){
   }
 
   try {
-    // Supabase se check karo
+    // Supabase se data fetch karo
     const { data, error } = await supabaseClient
       .from('users')
       .select('*')
@@ -63,8 +61,10 @@ async function doLogin(){
 
     const dbUser = data[0];
 
-    // Password check (Agar aapke database me password field ka naam alag hai to yahan badlein)
-    if(dbUser.pass !== pass && dbUser.password !== pass) {
+    // Password check karo (pass ya password dono columns check karega)
+    const dbPass = dbUser.pass || dbUser.password || dbUser.pass123; 
+    
+    if(dbPass !== pass) {
       document.getElementById('err').innerText = 'Username or password is incorrect';
       btn.innerText = 'Login';
       btn.disabled = false;
@@ -79,22 +79,22 @@ async function doLogin(){
       return;
     }
 
-    // Login Successful
+    // Remember me save karo
     if(remember){
       localStorage.setItem('am_remember', JSON.stringify({u: user, p: pass}));
     } else {
       localStorage.removeItem('am_remember');
     }
 
-    // User object banayein taake baqi pages use kar sakein
+    // User object banayein
     const loggedInUser = {
       id: dbUser.id,
       name: dbUser.name || 'Admin',
       username: dbUser.login_username,
-      role: 'admin', // Filhal admin role de rahe hain
+      role: 'admin', 
       active: true,
       phone: dbUser.contact || '',
-      biz: dbUser.business_name || '',
+      biz: '',
       addr: dbUser.address || '',
       target: dbUser.sale_target || 0,
       wallet: 0,
@@ -103,8 +103,6 @@ async function doLogin(){
 
     // Session mein save karein
     sessionStorage.setItem('am_s', loggedInUser.id);
-    
-    // Global `me` variable ko set karein (app.js se)
     window.me = loggedInUser; 
     
     // Dashboard par bhej dein
@@ -126,7 +124,7 @@ function togglePass(){
 }
 
 function forgotPass(){
-  alert('Forgot password?\n\nPlease contact your Administrator, they will provide a new password.\n\n(Admin: ' + D.settings.phone + ')');
+  alert('Forgot password?\n\nPlease contact your Administrator.');
 }
 
 let savedUser = '';
@@ -157,7 +155,6 @@ document.getElementById('root').innerHTML = `
     <a class="forgot-link" onclick="forgotPass()">Forgot Password?</a>
     <p id="err" style="color:var(--bad);min-height:18px;font-size:13px;text-align:center;margin-top:10px"></p>
     <button class="btn" style="width:100%;padding:12px;font-size:16px" onclick="doLogin()">Login</button>
-    <p class="hint" style="text-align:center;margin-top:16px">First time: admin / admin123</p>
   </div>
 </div>`;
 </script>
