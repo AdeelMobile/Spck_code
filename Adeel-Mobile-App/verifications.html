@@ -138,6 +138,12 @@ function loadVerifications(){
 
     // Show images and loan details if they exist
     let extraDetails = '';
+    
+    // Product Name (Store se aaya ho to)
+    if(x.product) {
+      extraDetails += `<div style="margin-top:4px; font-size:13px; color:var(--pri); font-weight:600;">Product: ${esc(x.product)}</div>`;
+    }
+
     if(x.frontImg || x.backImg) {
       extraDetails += `<div style="margin-top:6px; display:flex; gap:10px;">`;
       if(x.frontImg) extraDetails += `<a href="${esc(x.frontImg)}" target="_blank" style="font-size:12px; color:var(--pri); text-decoration:underline;">View Front ID</a>`;
