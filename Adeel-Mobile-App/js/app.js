@@ -14,6 +14,19 @@ try {
 }
 // --- SUPABASE CONNECTION END ---
 
+// Debug Box function
+function showDebug(msg, color) {
+  let dbg = document.getElementById('debug-box');
+  if(!dbg) {
+    dbg = document.createElement('div');
+    dbg.id = 'debug-box';
+    dbg.style.cssText = 'position:fixed; bottom:10px; left:10px; right:10px; background:#fff; border:2px solid '+color+'; color:'+color+'; padding:10px; border-radius:8px; z-index:99999; font-size:12px; font-weight:bold; text-align:center; box-shadow:0 4px 15px rgba(0,0,0,0.2);';
+    document.body.appendChild(dbg);
+  }
+  dbg.innerText = msg;
+  setTimeout(() => { if(dbg) dbg.remove(); }, 8000); // 8 second baad gayab ho jayega
+}
+
 const seed=()=>({
   settings:{shop:'Adeel Mobile',phone:'0321-4265688',addr:'411 Chowk Shalamar, Shalimar Link Road, Lahore',markup:20,theme:'classic',fs:15,hfs:22,sfs:18,lfs:13,nfs:15},
   users:[{id:'u0',name:'Administrator',username:'admin',pass:'admin123',role:'admin',phone:'',active:true,biz:'',addr:'',target:0,brandMarkup:{},wallet:0}],
@@ -61,3 +74,24 @@ function logout(){
   try{sessionStorage.removeItem('am_s')}catch(e){}
   window.location.href='index.html';
 }
+
+// --- TEST CONNECTION ON LOAD ---
+setTimeout(async () => {
+  if(!supabase) {
+    showDebug("❌ Supabase Library Load Nahi Hui!", "#ef4444");
+    return;
+  }
+  
+  try {
+    // Ims_settings table se 1 row fetch karne ki koshish
+    const { data, error } = await supabase.from('ims_settings').select('*').limit(1);
+    
+    if(error) {
+      showDebug("⚠️ Connection Hua, Lekin Error: " + error.message, "#f59e0b");
+    } else {
+      showDebug("✅ Supabase Successfully Connected!", "#10b981");
+    }
+  } catch (err) {
+    showDebug("❌ Error: " + err.message, "#ef4444");
+  }
+}, 2000); // 2 second baad test karega
