@@ -43,17 +43,24 @@ async function doLogin(){
   }
 
   try {
-    // Supabase se data fetch karo
+    // 1. Data fetch karo
     const { data, error } = await supabaseClient
       .from('users')
       .select('*')
       .eq('login_username', user)
       .limit(1);
 
-    if(error) throw error;
+    // Agar Supabase se koi error aaye to show karo
+    if(error) {
+      document.getElementById('err').innerText = 'Supabase Error: ' + error.message;
+      btn.innerText = 'Login';
+      btn.disabled = false;
+      return;
+    }
 
+    // Agar data nahi mila to show karo
     if(!data || data.length === 0) {
-      document.getElementById('err').innerText = 'Username or password is incorrect';
+      document.getElementById('err').innerText = 'User not found in database!';
       btn.innerText = 'Login';
       btn.disabled = false;
       return;
@@ -61,17 +68,15 @@ async function doLogin(){
 
     const dbUser = data[0];
 
-    // Password check karo (pass ya password dono columns check karega)
-    const dbPass = dbUser.pass || dbUser.password || dbUser.pass123; 
-    
-    if(dbPass !== pass) {
-      document.getElementById('err').innerText = 'Username or password is incorrect';
+    // 2. Password check karo
+    if(dbUser.pass !== pass) {
+      document.getElementById('err').innerText = 'Password mismatch! DB Pass: ' + dbUser.pass + ', Entered: ' + pass;
       btn.innerText = 'Login';
       btn.disabled = false;
       return;
     }
 
-    // Status check
+    // 3. Status check
     if(dbUser.status === 'blocked' || dbUser.status === 'disabled') {
       document.getElementById('err').innerText = 'Account is disabled';
       btn.innerText = 'Login';
@@ -79,14 +84,13 @@ async function doLogin(){
       return;
     }
 
-    // Remember me save karo
+    // Login Successful
     if(remember){
       localStorage.setItem('am_remember', JSON.stringify({u: user, p: pass}));
     } else {
       localStorage.removeItem('am_remember');
     }
 
-    // User object banayein
     const loggedInUser = {
       id: dbUser.id,
       name: dbUser.name || 'Admin',
@@ -101,16 +105,12 @@ async function doLogin(){
       brandMarkup: {}
     };
 
-    // Session mein save karein
     sessionStorage.setItem('am_s', loggedInUser.id);
     window.me = loggedInUser; 
-    
-    // Dashboard par bhej dein
     window.location.href = 'my-store.html';
 
   } catch (err) {
-    console.error(err);
-    document.getElementById('err').innerText = 'Connection error: ' + err.message;
+    document.getElementById('err').innerText = 'Catch Error: ' + err.message;
     btn.innerText = 'Login';
     btn.disabled = false;
   }
@@ -121,10 +121,6 @@ function togglePass(){
   const i = document.getElementById('eyeIcon');
   if(p.type === 'password'){ p.type = 'text'; i.innerText = '🙈'; } 
   else { p.type = 'password'; i.innerText = '👁️'; }
-}
-
-function forgotPass(){
-  alert('Forgot password?\n\nPlease contact your Administrator.');
 }
 
 let savedUser = '';
@@ -152,9 +148,9 @@ document.getElementById('root').innerHTML = `
       <input type="checkbox" id="rm" ${isRemembered?'checked':''}>
       <label for="rm" style="margin:0;cursor:pointer;">Remember Me</label>
     </div>
-    <a class="forgot-link" onclick="forgotPass()">Forgot Password?</a>
     <p id="err" style="color:var(--bad);min-height:18px;font-size:13px;text-align:center;margin-top:10px"></p>
     <button class="btn" style="width:100%;padding:12px;font-size:16px" onclick="doLogin()">Login</button>
+    <p class="hint" style="text-align:center;margin-top:16px">First time: admin / 0000</p>
   </div>
 </div>`;
 </script>
