@@ -23,7 +23,7 @@ function initSupabase() {
   if (window.supabase) {
     supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
     console.log('Supabase connected successfully!');
-    fetchTestData(); // Ab test data fetch karenge
+    fetchTestData();
   } else {
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
@@ -46,19 +46,15 @@ async function fetchTestData() {
   if(!supabaseClient) return;
   
   try {
-    // 1. Models fetch karo
     const { data: models, error: mErr } = await supabaseClient.from('models').select('*').limit(5);
     if(mErr) throw mErr;
 
-    // 2. Variants fetch karo
     const { data: variants, error: vErr } = await supabaseClient.from('variants').select('*').limit(5);
     if(vErr) throw vErr;
 
-    // 3. Browser Console mein data print karo
     console.log("--- MODELS DATA ---", models);
     console.log("--- VARIANTS DATA ---", variants);
 
-    // 4. Agar data mil gaya to Debug Box mein show karo
     if(models && variants) {
       showDebug(`✅ Data Mil Gaya! Models: ${models.length}, Variants: ${variants.length}`, "#10b981");
     }
@@ -98,8 +94,9 @@ const calc=(p,a,m,k)=>{const t=p*(1+k/100),r=Math.max(t-a,0);return{t,r,m:r/Math
 const paid=s=>s.advance+s.payments.reduce((a,p)=>a+p.amt,0);
 const wa=n=>{n=String(n||D.settings.phone).replace(/\D/g,'');return n.startsWith('0')?'92'+n.slice(1):n};
 
+// CHANGE 1: Yahan sessionStorage ki jagah localStorage kar diya hai
 let me=null;
-try{const s=sessionStorage.getItem('am_s');if(s)me=D.users.find(u=>u.id===s&&u.active)||null}catch(e){}
+try{const s=localStorage.getItem('am_user');if(s)me=JSON.parse(s)}catch(e){}
 
 function checkAuth(){
   if(!me){window.location.href='index.html';return false;}
@@ -112,8 +109,9 @@ function modal(h){
   m.innerHTML=h?`<div class="ov" onclick="if(event.target==this)modal()"><div class="md">${h}</div></div>`:'';
 }
 
+// CHANGE 2: Logout mein bhi localStorage kar diya hai
 function logout(){
   me=null;
-  try{sessionStorage.removeItem('am_s')}catch(e){}
+  try{localStorage.removeItem('am_user')}catch(e){}
   window.location.href='index.html';
 }

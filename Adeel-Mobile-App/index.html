@@ -43,7 +43,6 @@ async function doLogin(){
   }
 
   try {
-    // Naya RPC function call karo (jo humne Supabase mein banaya)
     const { data, error } = await supabaseClient.rpc('check_login', {
       p_username: user,
       p_password: pass
@@ -56,7 +55,6 @@ async function doLogin(){
       return;
     }
 
-    // Agar login fail ho
     if(!data || data.success === false) {
       document.getElementById('err').innerText = data.message || 'Invalid credentials';
       btn.innerText = 'Login';
@@ -64,7 +62,6 @@ async function doLogin(){
       return;
     }
 
-    // Login Successful
     const dbUser = data.user;
     
     if(remember){
@@ -87,10 +84,10 @@ async function doLogin(){
       brandMarkup: {}
     };
 
-    sessionStorage.setItem('am_s', loggedInUser.id);
+    // Yahan change kiya hai: sessionStorage ki jagah localStorage
+    localStorage.setItem('am_user', JSON.stringify(loggedInUser));
     window.me = loggedInUser; 
     
-    // Dashboard par bhej dein
     window.location.href = 'my-store.html';
 
   } catch (err) {
