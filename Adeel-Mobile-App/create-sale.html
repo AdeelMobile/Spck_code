@@ -4,9 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sales - Adeel Mobile</title>
+<!-- Supabase Library -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="css/style.css">
 <style>
-  /* Top Buttons (Tabs) */
   .sale-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 15px; scrollbar-width: none; }
   .sale-tabs::-webkit-scrollbar { display: none; }
   .sale-tab-btn {
@@ -17,18 +18,35 @@
   .sale-tab-btn:hover { border-color: var(--pri); }
   .sale-tab-btn.active { background: var(--pri); color: #fff; border-color: var(--pri); }
 
-  /* Panels */
   .sale-panel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
   .sale-panel.active { display: block; }
   
   .sale-panel h3 { font-size: 16px; color: var(--ink); margin-bottom: 15px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
 
-  /* Search Filters */
   .filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
   .filter-row input { flex: 1; min-width: 150px; }
 
-  /* Table */
   .tw { margin-top: 10px; }
+
+  /* Naya Design: Search Bar aur Product List */
+  .search-container { position: relative; margin-bottom: 15px; }
+  .search-container input { width: 100%; padding: 14px 16px 14px 44px; border-radius: 10px; border: 1px solid var(--line); font-size: 14px; outline: none; background: var(--bg); }
+  .search-container input:focus { border-color: var(--pri); }
+  .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--mute); }
+
+  .brand-filters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; scrollbar-width: none; }
+  .brand-filters::-webkit-scrollbar { display: none; }
+  .brand-btn { background: #fff; border: 1px solid var(--line); color: var(--ink); padding: 8px 16px; border-radius: 99px; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+  .brand-btn.active { background: var(--pri); color: #fff; border-color: var(--pri); }
+
+  .product-list-container { max-height: 400px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; }
+  .product-item { padding: 12px 15px; border-bottom: 1px solid var(--line); cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
+  .product-item:hover { background: var(--bg); }
+  .product-item:last-child { border-bottom: none; }
+  .product-item.selected { background: var(--pri2); border-left: 4px solid var(--pri); }
+  .product-item b { display: block; font-size: 14px; color: var(--ink); margin-bottom: 2px; }
+  .product-item small { display: block; font-size: 12px; color: var(--mute); }
+  .product-price { font-weight: 700; color: var(--pri); font-size: 14px; }
 </style>
 </head>
 <body>
@@ -39,40 +57,84 @@
 if(!me) window.location.href='index.html';
 if(me.role!=='admin') window.location.href='dashboard.html';
 
-let currentTab = 'invoice'; // Default tab
+let currentTab = 'invoice';
 let selectedCustomer = null;
+let selectedPhone = null;
 let searchQuery = '';
 let filterDate = '';
+let searchPhoneQuery = '';
+let currentBrandFilter = 'All';
 
-function loadSales() {
-  const mySales = D.sales; // Admin sab dekhta hai
-  
+let sbProducts = [];
+let sbSales = [];
+let sbVerifications = [];
+let sbBrands = [];
+let sbModels = [];
+
+async function fetchAllData() {
+  try {
+    const { data: brands } = await supabaseClient.from('brands').select('*');
+    const { data: models } = await supabaseClient.from('models').select('*');
+    const { data: variants } = await supabaseClient.from('variants').select('*');
+    const { data: orders } = await supabaseClient.from('orders').select('*');
+    const { data: verifs } = await supabaseClient.from('verifications').select('*');
+
+    sbBrands = brands || [];
+    sbModels = models || [];
+    sbProducts = variants || [];
+    sbSales = orders || [];
+    sbVerifications = verifs || [];
+  } catch(err) {
+    console.error(err);
+  }
+}
+
+async function loadSales() {
+  await fetchAllData();
+
+  // Brands ki list unique nikalna
+  const uniqueBrands = ['All', ...new Set(sbBrands.map(b => b.brand))];
+
   let html = `
   <div class="top"><h2>Sales Management</h2></div>
   
-  <!-- Top Buttons (Tabs) -->
   <div class="sale-tabs">
     <button class="sale-tab-btn ${currentTab==='invoice'?'active':''}" onclick="switchTab('invoice')">🧾 Create Invoice</button>
     <button class="sale-tab-btn ${currentTab==='search'?'active':''}" onclick="switchTab('search')">🔍 Search Engine</button>
-    <button class="sale-tab-btn ${currentTab==='performance'?'active':''}" onclick="switchTab('performance')">📈 Sale Performance</button>
     <button class="sale-tab-btn ${currentTab==='report'?'active':''}" onclick="switchTab('report')">📊 Sale Report</button>
   </div>
 
-  <!-- 1. Create Invoice Panel -->
+  <!-- 1. Create Invoice -->
   <div class="sale-panel ${currentTab==='invoice'?'active':''}">
     <h3>Create New Invoice</h3>
-    <label>Phone</label>
-    <select id="s_phone">
-      <option value="">-- Select Phone --</option>
-      ${D.products.filter(p => p.stock > 0).map(p => `<option value="${p.id}">${esc(p.brand)} ${esc(p.name)} (${esc(p.variant || '')}) – ${rs(p.price)} (Stock: ${p.stock})</option>`).join('')}
-    </select>
     
-    <label style="margin-top:15px;">Customer (Verification Required)</label>
+    <label>1. Search & Select Phone</label>
+    <div class="search-container">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchPhone" placeholder="Search model (e.g. Vivo, Redmi)..." oninput="searchPhoneQuery=this.value; renderProductList()" value="${esc(searchPhoneQuery)}">
+    </div>
+
+    <div class="brand-filters" id="brandFilters">
+      ${uniqueBrands.map(b => `
+        <button class="brand-btn ${currentBrandFilter===b?'active':''}" onclick="filterBrand('${b}')">${b}</button>
+      `).join('')}
+    </div>
+
+    <div class="product-list-container" id="productList">
+      <!-- Yahan products JS se aayenge -->
+    </div>
+
+    <div id="selectedPhoneDisplay" style="margin-top:15px; padding:10px; background:var(--bg); border-radius:8px; display:none;">
+      <small style="color:var(--mute);">Selected Phone:</small>
+      <b id="selectedPhoneText" style="display:block; color:var(--pri);"></b>
+    </div>
+
+    <label style="margin-top:20px;">2. Select Customer</label>
     <button class="btn sec" style="width:100%; margin-bottom:10px;" onclick="showApprovedCustomers()">Select Approved Customer</button>
     
     <div class="row">
-      <div><input id="s_cname" value="${selectedCustomer ? esc(selectedCustomer.cname) : ''}" placeholder="Customer Name" readonly style="background:var(--bg);"></div>
-      <div><input id="s_cphone" value="${selectedCustomer ? esc(selectedCustomer.cphone) : ''}" placeholder="Customer Phone" readonly style="background:var(--bg);"></div>
+      <div><input id="s_cname" value="${selectedCustomer ? esc(selectedCustomer.name || selectedCustomer.customer_name) : ''}" placeholder="Customer Name" readonly style="background:var(--bg);"></div>
+      <div><input id="s_cphone" value="${selectedCustomer ? esc(selectedCustomer.phone || selectedCustomer.customer_phone) : ''}" placeholder="Customer Phone" readonly style="background:var(--bg);"></div>
     </div>
 
     <div class="row">
@@ -86,99 +148,130 @@ function loadSales() {
     <button class="btn" style="margin-top:15px; width:100%" onclick="saveSale()">Create Invoice</button>
   </div>
 
-  <!-- 2. Search Engine Panel -->
+  <!-- 2. Search -->
   <div class="sale-panel ${currentTab==='search'?'active':''}">
     <h3>Search Sales</h3>
     <div class="filter-row">
-      <input type="text" id="searchInput" placeholder="Search by customer name or phone..." oninput="searchQuery=this.value; loadSales()" value="${esc(searchQuery)}">
+      <input type="text" id="searchInput" placeholder="Search by customer name..." oninput="searchQuery=this.value; loadSales()" value="${esc(searchQuery)}">
       <input type="date" id="dateInput" onchange="filterDate=this.value; loadSales()" value="${filterDate}">
     </div>
-    
-    ${renderSalesTable(mySales.filter(s => {
-      const matchSearch = s.cname.toLowerCase().includes(searchQuery.toLowerCase()) || s.cphone.includes(searchQuery);
-      const matchDate = filterDate ? new Date(s.date).toISOString().split('T')[0] === filterDate : true;
+    ${renderSalesTable(sbSales.filter(s => {
+      const cName = s.customer_name || '';
+      const cPhone = s.customer_phone || '';
+      const matchSearch = cName.toLowerCase().includes(searchQuery.toLowerCase()) || cPhone.includes(searchQuery);
+      const matchDate = filterDate ? new Date(s.created_at).toISOString().split('T')[0] === filterDate : true;
       return matchSearch && matchDate;
     }))}
   </div>
 
-  <!-- 3. Sale Performance Panel -->
-  <div class="sale-panel ${currentTab==='performance'?'active':''}">
-    <h3>Sale Performance</h3>
-    ${D.users.filter(u => u.role !== 'admin').map(u => {
-      const userSales = mySales.filter(s => s.userId === u.id);
-      const totalSaleValue = userSales.reduce((sum, s) => sum + s.total, 0);
-      return `
-        <div style="border:1px solid var(--line); padding:12px; border-radius:10px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <b style="display:block; font-size:14px;">${esc(u.name)}</b>
-            <small style="color:var(--mute);">Total Sales: ${userSales.length}</small>
-          </div>
-          <div style="font-weight:700; color:var(--pri); font-size:15px;">${rs(totalSaleValue)}</div>
-        </div>
-      `;
-    }).join('')}
-  </div>
-
-  <!-- 4. Sale Report Panel -->
+  <!-- 3. Report -->
   <div class="sale-panel ${currentTab==='report'?'active':''}">
-    <h3>Sale Report (Latest 20)</h3>
-    ${renderSalesTable(mySales.slice().reverse().slice(0, 20))}
+    <h3>Sale Report (Latest)</h3>
+    ${renderSalesTable(sbSales.slice().reverse().slice(0, 20))}
   </div>
   `;
 
   renderApp('Sales', html);
+  renderProductList(); // Products ko load karo
 }
 
-// Helper Function: Table Renderer
+function renderProductList() {
+  const container = document.getElementById('productList');
+  if(!container) return;
+
+  // Filtering Logic
+  let filtered = sbProducts.filter(p => {
+    const model = sbModels.find(m => m.id === p.model_id);
+    if(!model) return false;
+    
+    const brand = sbBrands.find(b => b.id === model.brand_id);
+    const brandName = brand ? brand.brand : 'Unknown';
+    
+    // Search query match
+    const matchQuery = (model.model + ' ' + p.variant + ' ' + brandName).toLowerCase().includes(searchPhoneQuery.toLowerCase());
+    
+    // Brand filter match
+    const matchBrand = currentBrandFilter === 'All' || brandName === currentBrandFilter;
+
+    return matchQuery && matchBrand;
+  });
+
+  if(filtered.length === 0) {
+    container.innerHTML = '<div style="padding:15px; text-align:center; color:var(--mute);">No phones found.</div>';
+    return;
+  }
+
+  let html = '';
+  filtered.forEach(p => {
+    const model = sbModels.find(m => m.id === p.model_id);
+    const brand = sbBrands.find(b => b.id === model.brand_id);
+    const brandName = brand ? brand.brand : 'Unknown';
+    const isSelected = selectedPhone && selectedPhone.id === p.id;
+
+    html += `<div class="product-item ${isSelected?'selected':''}" onclick="selectPhone('${p.id}')">
+      <div>
+        <b>${esc(brandName)} ${esc(model.model)}</b>
+        <small>${esc(p.variant || 'Standard')}</small>
+      </div>
+      <div class="product-price">${rs(p.price)}</div>
+    </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function filterBrand(brand) {
+  currentBrandFilter = brand;
+  loadSales(); // Reload to update active class
+}
+
+function selectPhone(id) {
+  selectedPhone = sbProducts.find(p => p.id == id);
+  
+  const displayBox = document.getElementById('selectedPhoneDisplay');
+  const textBox = document.getElementById('selectedPhoneText');
+  
+  const model = sbModels.find(m => m.id === selectedPhone.model_id);
+  const brand = sbBrands.find(b => b.id === model.brand_id);
+  
+  textBox.innerText = `${brand.brand} ${model.model} (${selectedPhone.variant || ''}) - ${rs(selectedPhone.price)}`;
+  displayBox.style.display = 'block';
+  
+  renderProductList(); // Update selection highlight
+}
+
+// --- Baqi Functions (Table render, Customer select, Save sale) wese hi rahenge ---
 function renderSalesTable(list) {
   return `
     <div class="tw"><table>
-      <tr>
-        <th>Date</th>
-        <th>Customer</th>
-        <th>Phone Model</th>
-        <th>Total Price</th>
-        <th>Advance</th>
-        <th>Monthly</th>
-        <th>Agent</th>
-      </tr>
-      ${list.map(s => {
-        const u = D.users.find(x => x.id === s.userId);
-        return `
-          <tr>
-            <td>${new Date(s.date).toLocaleDateString('en-GB')}</td>
-            <td>${esc(s.cname)}<br><small style="color:var(--mute);">${esc(s.cphone)}</small></td>
-            <td>${esc(s.pname)}</td>
-            <td>${rs(s.total)}</td>
-            <td>${rs(s.advance)}</td>
-            <td>${rs(s.monthly)}</td>
-            <td>${esc(u ? u.name : '-')}</td>
-          </tr>
-        `;
-      }).join('') || '<tr><td colspan="7" style="text-align:center; color:var(--mute);">No sales found.</td></tr>'}
+      <tr><th>Date</th><th>Customer</th><th>Phone Model</th><th>Total Price</th><th>Advance</th><th>Monthly</th></tr>
+      ${list.map(s => `
+        <tr>
+          <td>${new Date(s.created_at || Date.now()).toLocaleDateString('en-GB')}</td>
+          <td>${esc(s.customer_name)}<br><small style="color:var(--mute);">${esc(s.customer_phone)}</small></td>
+          <td>${esc(s.product_name)}</td>
+          <td>${rs(s.amount)}</td>
+          <td>${rs(s.advance)}</td>
+          <td>${rs(s.monthly)}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="6" style="text-align:center; color:var(--mute);">No sales found.</td></tr>'}
     </table></div>
   `;
 }
 
-function switchTab(tab) {
-  currentTab = tab;
-  loadSales();
-}
+function switchTab(tab) { currentTab = tab; loadSales(); }
 
 function showApprovedCustomers() {
-  const approved = D.verifications.filter(v => v.status === 'Approved' && !v.used);
-  let listHtml = `<h3>Select Customer</h3>
-  <div style="max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-top:10px;">`;
+  const approved = sbVerifications.filter(v => v.status === 'Approved' || v.status === 'approved');
+  let listHtml = `<h3>Select Customer</h3><div style="max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-top:10px;">`;
   
   if(approved.length === 0) {
     listHtml += `<p style="color:var(--mute);">No approved customers found.</p>`;
   } else {
     approved.forEach(v => {
-      listHtml += `
-        <div style="border:1px solid var(--line); padding:12px; border-radius:8px; cursor:pointer;" onclick="selectCustomer('${v.id}')">
-          <b>${esc(v.cname)}</b><br><small>${esc(v.cphone)}</small>
-        </div>
-      `;
+      const cName = v.customer_name || v.name;
+      const cPhone = v.customer_phone || v.phone || v.contact;
+      listHtml += `<div style="border:1px solid var(--line); padding:12px; border-radius:8px; cursor:pointer;" onclick="selectCustomer('${v.id}')"><b>${esc(cName)}</b><br><small>${esc(cPhone)}</small></div>`;
     });
   }
   listHtml += `</div><div style="margin-top:15px; text-align:right;"><button class="btn sec" onclick="modal()">Close</button></div>`;
@@ -186,42 +279,46 @@ function showApprovedCustomers() {
 }
 
 function selectCustomer(id) {
-  selectedCustomer = D.verifications.find(v => v.id === id);
+  selectedCustomer = sbVerifications.find(v => v.id == id);
   modal();
   loadSales(); 
 }
 
-function saveSale() {
-  const pid = v('s_phone');
-  const p = D.products.find(x => x.id === pid);
+async function saveSale() {
+  const p = selectedPhone;
+  const model = p ? sbModels.find(m => m.id === p.model_id) : null;
   
-  if(!p) return alert('Please select a phone');
+  if(!p) return alert('Please select a phone from the list');
   if(!selectedCustomer) return alert('Please select an approved customer');
-  if(p.stock <= 0) return alert('This phone is out of stock');
-
+  
   const advance = +v('s_advance') || 0;
   const months = +v('s_months') || 1;
   const markup = +v('s_markup') || 0;
-
   const totalPrice = p.price * (1 + markup / 100);
   const remaining = Math.max(totalPrice - advance, 0);
   const monthly = remaining / months;
 
-  D.sales.push({
-    id: uid(), userId: me.id, productId: p.id, pname: p.brand + ' ' + p.name,
-    cname: selectedCustomer.cname, cphone: selectedCustomer.cphone,
-    price: p.price, advance: advance, months: months, markup: markup,
-    total: totalPrice, monthly: monthly, payments: [], date: Date.now()
-  });
+  try {
+    const orderId = 'ORD-' + Date.now();
+    const { error: orderErr } = await supabaseClient.from('orders').insert([{
+      order_id: orderId,
+      customer_name: selectedCustomer.customer_name || selectedCustomer.name,
+      customer_phone: selectedCustomer.customer_phone || selectedCustomer.phone,
+      product_name: (model ? model.model : '') + ' ' + (p.variant || ''),
+      amount: totalPrice,
+      advance: advance,
+      monthly: monthly,
+      status: 'pending'
+    }]);
+    if(orderErr) throw orderErr;
 
-  p.stock--;
-  const v = D.verifications.find(x => x.id === selectedCustomer.id);
-  if(v) v.used = true;
-
-  save();
-  alert('Sale Created Successfully!');
-  selectedCustomer = null;
-  loadSales();
+    alert('Sale Created Successfully in Supabase!');
+    selectedCustomer = null;
+    selectedPhone = null;
+    loadSales();
+  } catch(err) {
+    alert('Error: ' + err.message);
+  }
 }
 
 loadSales();

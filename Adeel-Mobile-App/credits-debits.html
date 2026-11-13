@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Credits & Debits - Adeel Mobile</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  /* Tabs Styling */
+  .cd-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 15px; scrollbar-width: none; }
+  .cd-tabs::-webkit-scrollbar { display: none; }
+  .cd-tab-btn {
+    background: #fff; border: 1px solid var(--line); color: var(--ink);
+    padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    white-space: nowrap; cursor: pointer; transition: 0.2s;
+  }
+  .cd-tab-btn:hover { border-color: var(--pri); }
+  .cd-tab-btn.active { background: var(--pri); color: #fff; border-color: var(--pri); }
+
+  /* Panels */
+  .cd-panel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+  .cd-panel.active { display: block; }
+  
+  .cd-panel h3 { font-size: 16px; color: var(--ink); margin-bottom: 15px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+if(me.role!=='admin') window.location.href='dashboard.html';
+
+let currentTab = 'debitors';
+
+function loadPage() {
+  let html = `
+  <div class="top"><h2>Credits & Debits</h2></div>
+  
+  <!-- Top Tabs (Buttons) -->
+  <div class="cd-tabs">
+    <button class="cd-tab-btn ${currentTab==='debitors'?'active':''}" onclick="switchTab('debitors')">📥 Debitors</button>
+    <button class="cd-tab-btn ${currentTab==='creditors'?'active':''}" onclick="switchTab('creditors')">📤 Creditors</button>
+    <button class="cd-tab-btn ${currentTab==='all'?'active':''}" onclick="switchTab('all')">📊 All Accounts</button>
+    <button class="cd-tab-btn ${currentTab==='create'?'active':''}" onclick="switchTab('create')">➕ Create New Account</button>
+  </div>
+
+  <!-- 1. Debitors Panel -->
+  <div class="cd-panel ${currentTab==='debitors'?'active':''}">
+    <h3>Debitors</h3>
+    <p style="color:var(--mute); text-align:center; padding:20px;">Coming soon...</p>
+  </div>
+
+  <!-- 2. Creditors Panel -->
+  <div class="cd-panel ${currentTab==='creditors'?'active':''}">
+    <h3>Creditors</h3>
+    <p style="color:var(--mute); text-align:center; padding:20px;">Coming soon...</p>
+  </div>
+
+  <!-- 3. All Accounts Panel -->
+  <div class="cd-panel ${currentTab==='all'?'active':''}">
+    <h3>All Accounts</h3>
+    <p style="color:var(--mute); text-align:center; padding:20px;">Coming soon...</p>
+  </div>
+
+  <!-- 4. Create Account Panel -->
+  <div class="cd-panel ${currentTab==='create'?'active':''}">
+    <h3>Create New Account</h3>
+    <p style="color:var(--mute); text-align:center; padding:20px;">Coming soon...</p>
+  </div>
+  `;
+
+  renderApp('Credits & Debits', html);
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  loadPage();
+}
+
+loadPage();
+</script>
+</body>
+</html>
