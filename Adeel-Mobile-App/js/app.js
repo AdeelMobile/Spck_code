@@ -3,23 +3,9 @@ const K='adeelmobile_v3',uid=()=>Math.random().toString(36).slice(2,9);
 // --- SUPABASE SETUP START ---
 const SB_URL = 'https://nqihozwbdrvpyalctwbc.supabase.co';
 const SB_KEY = 'sb_publishable_KQG5u2pwI4QjgYMZsJ97Kw_sTPH1OeL';
-let supabase = null;
+let supabaseClient = null;
 
-// Library ko dynamically load karna
-const script = document.createElement('script');
-script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-script.onload = () => {
-  try {
-    supabase = window.supabase.createClient(SB_URL, SB_KEY);
-    console.log('Supabase connected successfully!');
-  } catch(e) {
-    console.log('Supabase connection error:', e);
-  }
-};
-document.head.appendChild(script);
-// --- SUPABASE SETUP END ---
-
-// Debug Box (Screen par status dikhane ke liye)
+// Debug Box Function
 function showDebug(msg, color) {
   let dbg = document.getElementById('debug-box');
   if(!dbg) {
@@ -29,8 +15,48 @@ function showDebug(msg, color) {
     document.body.appendChild(dbg);
   }
   dbg.innerText = msg;
-  setTimeout(() => { if(dbg) dbg.remove(); }, 10000); // 10 second baad gayab ho jayega
+  setTimeout(() => { if(dbg) dbg.remove(); }, 10000);
 }
+
+// Library Loader
+window.addEventListener('load', () => {
+  // Thora intezar taake script tag load ho jaye
+  setTimeout(() => {
+    if (window.supabase) {
+      try {
+        supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+        console.log('Supabase connected successfully!');
+        testConnection(); // Connection test karo
+      } catch(e) {
+        console.log('Supabase connection error:', e);
+        showDebug("❌ Client banane mein error!", "#ef4444");
+      }
+    } else {
+      showDebug("❌ Supabase Library Load Nahi Hui!", "#ef4444");
+    }
+  }, 1000); // 1 second wait
+});
+
+// Connection Test
+async function testConnection() {
+  if(!supabaseClient) {
+    showDebug("❌ Client mojood nahi hai!", "#ef4444");
+    return;
+  }
+  try {
+    // 'products' table se data fetch karne ki koshish
+    const { data, error } = await supabaseClient.from('products').select('*').limit(1);
+    
+    if(error) {
+      showDebug("⚠️ Connection Hua, Lekin Error: " + error.message, "#f59e0b");
+    } else {
+      showDebug("✅ Supabase Successfully Connected!", "#10b981");
+    }
+  } catch (err) {
+    showDebug("❌ Error: " + err.message, "#ef4444");
+  }
+}
+// --- SUPABASE SETUP END ---
 
 const seed=()=>({
   settings:{shop:'Adeel Mobile',phone:'0321-4265688',addr:'411 Chowk Shalamar, Shalimar Link Road, Lahore',markup:20,theme:'classic',fs:15,hfs:22,sfs:18,lfs:13,nfs:15},
@@ -79,23 +105,3 @@ function logout(){
   try{sessionStorage.removeItem('am_s')}catch(e){}
   window.location.href='index.html';
 }
-
-// --- TEST CONNECTION ---
-setTimeout(async () => {
-  if(!supabase) {
-    showDebug("❌ Supabase Library Load Nahi Hui!", "#ef4444");
-    return;
-  }
-  
-  try {
-    const { data, error } = await supabase.from('ims_settings').select('*').limit(1);
-    
-    if(error) {
-      showDebug("⚠️ Connection Hua, Lekin Error: " + error.message, "#f59e0b");
-    } else {
-      showDebug("✅ Supabase Successfully Connected!", "#10b981");
-    }
-  } catch (err) {
-    showDebug("❌ Error: " + err.message, "#ef4444");
-  }
-}, 3000); // 3 second baad test karega (library load hone ka waqt)
