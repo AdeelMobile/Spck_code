@@ -43,48 +43,30 @@ async function doLogin(){
   }
 
   try {
-    // 1. Data fetch karo
-    const { data, error } = await supabaseClient
-      .from('users')
-      .select('*')
-      .eq('login_username', user)
-      .limit(1);
+    // Naya RPC function call karo (jo humne Supabase mein banaya)
+    const { data, error } = await supabaseClient.rpc('check_login', {
+      p_username: user,
+      p_password: pass
+    });
 
-    // Agar Supabase se koi error aaye to show karo
     if(error) {
-      document.getElementById('err').innerText = 'Supabase Error: ' + error.message;
+      document.getElementById('err').innerText = 'Error: ' + error.message;
       btn.innerText = 'Login';
       btn.disabled = false;
       return;
     }
 
-    // Agar data nahi mila to show karo
-    if(!data || data.length === 0) {
-      document.getElementById('err').innerText = 'User not found in database!';
-      btn.innerText = 'Login';
-      btn.disabled = false;
-      return;
-    }
-
-    const dbUser = data[0];
-
-    // 2. Password check karo
-    if(dbUser.pass !== pass) {
-      document.getElementById('err').innerText = 'Password mismatch! DB Pass: ' + dbUser.pass + ', Entered: ' + pass;
-      btn.innerText = 'Login';
-      btn.disabled = false;
-      return;
-    }
-
-    // 3. Status check
-    if(dbUser.status === 'blocked' || dbUser.status === 'disabled') {
-      document.getElementById('err').innerText = 'Account is disabled';
+    // Agar login fail ho
+    if(!data || data.success === false) {
+      document.getElementById('err').innerText = data.message || 'Invalid credentials';
       btn.innerText = 'Login';
       btn.disabled = false;
       return;
     }
 
     // Login Successful
+    const dbUser = data.user;
+    
     if(remember){
       localStorage.setItem('am_remember', JSON.stringify({u: user, p: pass}));
     } else {
@@ -107,6 +89,8 @@ async function doLogin(){
 
     sessionStorage.setItem('am_s', loggedInUser.id);
     window.me = loggedInUser; 
+    
+    // Dashboard par bhej dein
     window.location.href = 'my-store.html';
 
   } catch (err) {
