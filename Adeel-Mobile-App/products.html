@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Products - Adeel Mobile</title>
+<!-- Supabase Library Add Ki Gayi Hai -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -73,7 +75,6 @@ async function loadProductsFromSupabase() {
 
   } catch (err) {
     console.error(err);
-    // Asal error screen par dikhao
     tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--bad);">Error: ${err.message}</td></tr>`;
   }
 }
@@ -99,7 +100,6 @@ function loadProducts() {
   loadProductsFromSupabase();
 }
 
-// Baqi functions wese hi rahenge (Add Product, Delete, etc)
 function prodM(id) {
   if(id) return alert("Edit feature coming soon!");
   const brandOptions = allBrands.map(b => `<option value="${b.id}">${esc(b.brand)}</option>`).join('');
