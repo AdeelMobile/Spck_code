@@ -1,32 +1,28 @@
 // ==========================================
-// STORE LOGIC & SECTION LOADER
+// STORE LOGIC & SECTION LOADER (Supabase Data)
 // UPDATE: 2026-11-13
 // ==========================================
 
 document.addEventListener('DOMContentLoaded', () => {
   loadSections().then(() => {
     initBannerSlider();
-    loadProducts();
+    // Data load hone ka intezar karo
+    setTimeout(loadProductsFromSupabase, 1500); 
   });
 });
 
-// --- 1. SECTIONS KO LOAD KARNA ---
 async function loadSections() {
   const sections = ['header', 'banner', 'filters', 'products', 'features', 'about', 'reviews', 'footer'];
-  
   for (let sec of sections) {
     try {
       const response = await fetch(`sections/${sec}.html`);
       const html = await response.text();
       const el = document.getElementById(`sec-${sec}`);
       if (el) el.innerHTML = html;
-    } catch (error) {
-      console.log(`Error loading ${sec}:`, error);
-    }
+    } catch (error) { console.log(`Error loading ${sec}:`, error); }
   }
 }
 
-// --- 2. BANNER SLIDER LOGIC ---
 function initBannerSlider() {
   let currentSlide = 0;
   const slides = document.querySelectorAll('.slide');
@@ -39,73 +35,120 @@ function initBannerSlider() {
   }
 }
 
-// --- 3. PRODUCTS KO LOAD KARNA ---
-function loadProducts() {
+// --- SUPABASE DATA FETCH & RENDER ---
+async function loadProductsFromSupabase() {
   const grid = document.getElementById('productGrid');
   if (!grid) return;
-  
-  const params = new URLSearchParams(window.location.search);
-  const uname = params.get('user');
-  const dealer = D.users.find(x => x.username === uname && x.active) || D.users.find(x => x.username === 'admin');
-  const n = wa(dealer.phone || D.settings.phone);
-  
-  let html = '';
-  html += D.products.filter(p => p.stock > 0).map(p => {
-    const advance = p.price * 0.30;
-    const msg = encodeURIComponent('Hello, I want to book ' + p.brand + ' ' + p.name);
-    // Product data stringify for passing to Modal
-    const pData = JSON.stringify(p).replace(/"/g, '&quot;');
-    
-    return `<div class="p-card" data-name="${esc((p.brand+' '+p.name).toLowerCase())}" data-price="${p.price}">
-      <div class="p-brand">${esc(p.brand)}</div>
-      <div class="p-img" style="${p.img?`background-image:url('${esc(p.img)}')`:''}">${p.img?'':'📱'}</div>
-      
-      <div class="p-info">
-        <div class="p-name">${esc(p.name)}</div>
-        
-        <div class="price-block">
-          <div class="price-row main-price">
-            <span class="price-label">Rs</span>
-            <span class="price-value">${rs(p.price)}</span>
-          </div>
-          <div class="price-row down-payment">
-            <span class="price-label">Advance</span>
-            <span class="price-value">${rs(advance)}</span>
-          </div>
-        </div>
 
-        <div class="p-actions">
-          <button class="btn-action" onclick="showMore(${pData})">More ▼</button>
-          <button class="btn-action verify-btn" onclick="showVerifyForm(${pData})">Verification</button>
-        </div>
+  // Check karo ke supabase load hua hai ya nahi
+  if (!supabaseClient) {
+    grid.innerHTML = '<p style="text-align:center; color:var(--bad); grid-column: span 2;">Database connection error. Please refresh.</p>';
+    return;
+  }
+
+  grid.innerHTML = '<p style="text-align:center; color:var(--mute); grid-column: span 2;">Loading products...</p>';
+
+  try {
+    // 1. Brands, Models, aur Variants fetch karo
+    const { data: brands } = await supabaseClient.from('brands').select('id, brand');
+    const { data: models } = await supabaseClient.from('models').select('id, brand_id, model');
+    const { data: variants } = await supabaseClient.from('variants').select('*');
+
+    if (!variants || !models || !brands) {
+      grid.innerHTML = '<p style="text-align:center; color:var(--mute); grid-column: span 2;">No data found.</p>';
+      return;
+    }
+
+    // 2. Data ko aapas mein jodo (Join)
+    let html = '';
+    let count = 0;
+
+    variants.forEach(v => {
+      // Variant ka model dhoondo
+      const model = models.find(m => m.id === v.model_id);
+      if(!model) return; // Agar model nahi mila to skip
+
+      // Model ka brand dhoondo
+      const brand = brands.find(b => b.id === model.brand_id);
+      const brandName = brand ? brand.brand : 'Unknown';
+
+      // Sirf wo variants show karo jo website par show karne hain
+      if(v.show_website === false) return; 
+
+      count++;
+      const price = v.price || 0;
+      const advance = price * 0.30; 
+      const pName = model.model;
+      const pVariant = v.variant;
+      
+      const msg = encodeURIComponent('Hello, I want to book ' + brandName + ' ' + pName);
+      const pData = JSON.stringify(v).replace(/"/g, '&quot;');
+
+      // Image ka logic
+      let imgStyle = '';
+      if(v.image_link) {
+        imgStyle = `background-image:url('${v.image_link}'); background-size:contain;`;
+      }
+
+      html += `<div class="p-card" data-price="${price}">
+        <div class="p-brand">${esc(brandName)}</div>
+        <div class="p-img" style="${imgStyle}">${v.image_link ? '' : '📱'}</div>
         
-        <a class="btn-wa" href="https://wa.me/${n}?text=${msg}" target="_blank">
-          Order on WhatsApp
-        </a>
-      </div>
-    </div>`;
-  }).join('');
-  
-  grid.innerHTML = html;
+        <div class="p-info">
+          <div class="p-name">${esc(pName)} <br><small style="font-weight:400; color:var(--mute);">${esc(pVariant)}</small></div>
+          
+          <div class="price-block">
+            <div class="price-row main-price">
+              <span class="price-label">Rs</span>
+              <span class="price-value">${rs(price)}</span>
+            </div>
+            <div class="price-row down-payment">
+              <span class="price-label">Advance</span>
+              <span class="price-value">${rs(advance)}</span>
+            </div>
+          </div>
+
+          <div class="p-actions">
+            <button class="btn-action" onclick="showMore(${pData})">More ▼</button>
+            <button class="btn-action verify-btn" onclick="showVerifyForm(${pData})">Verification</button>
+          </div>
+          
+          <a class="btn-wa" href="https://wa.me/?text=${msg}" target="_blank">
+            Order on WhatsApp
+          </a>
+        </div>
+      </div>`;
+    });
+
+    if(count === 0) {
+       grid.innerHTML = '<p style="text-align:center; color:var(--mute); grid-column: span 2;">No products available.</p>';
+    } else {
+       grid.innerHTML = html;
+    }
+
+  } catch (err) {
+    console.error(err);
+    grid.innerHTML = '<p style="text-align:center; color:var(--bad); grid-column: span 2;">Error loading data.</p>';
+  }
 }
 
-// --- 4. MORE DETAILS POPUP ---
+// --- MORE DETAILS POPUP ---
 function showMore(p) {
-  const advance = p.price * 0.30;
-  const monthly9 = (p.price - advance) / 9;
-  const monthly6 = (p.price - advance) / 6;
+  const price = p.price || 0;
+  const advance = price * 0.30;
+  const monthly9 = (price - advance) / 9;
+  const monthly6 = (price - advance) / 6;
 
   let html = `
     <div style="text-align:center; margin-bottom:20px;">
       <div style="font-size:60px; margin-bottom:10px;">📱</div>
-      <h2 style="margin:0; font-size:20px;">${esc(p.brand)} ${esc(p.name)}</h2>
-      <p style="color:var(--mute); font-size:13px; margin-top:5px;">Variant: ${esc(p.variant || 'Standard')}</p>
+      <h2 style="margin:0; font-size:20px;">${esc(p.variant)}</h2>
     </div>
     
     <div style="background:var(--bg); padding:15px; border-radius:12px; margin-bottom:20px; border:1px solid var(--line);">
       <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
         <span style="color:var(--mute);">Total Price:</span>
-        <b>${rs(p.price)}</b>
+        <b>${rs(price)}</b>
       </div>
       <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
         <span style="color:var(--mute);">Advance (30%):</span>
@@ -124,7 +167,7 @@ function showMore(p) {
 
     <div>
       <h4 style="margin-bottom:8px;">Specifications</h4>
-      <p style="color:var(--mute); font-size:13px; line-height:1.5;">${esc(p.specs || 'No specifications available for this model.')}</p>
+      <p style="color:var(--mute); font-size:13px; line-height:1.5;">${p.specs ? JSON.stringify(p.specs) : 'No specifications available.'}</p>
     </div>
 
     <button class="btn" style="width:100%; margin-top:20px;" onclick="closeModal()">Close</button>
@@ -135,12 +178,12 @@ function showMore(p) {
   document.getElementById('infoModal').classList.add('open');
 }
 
-// --- 5. VERIFICATION FORM POPUP ---
+// --- VERIFICATION FORM POPUP ---
 function showVerifyForm(p) {
   let html = `
     <div style="text-align:center; margin-bottom:15px;">
       <h3 style="margin:0; color:var(--pri);">Verification Form</h3>
-      <p style="color:var(--mute); font-size:12px;">For: ${esc(p.brand)} ${esc(p.name)}</p>
+      <p style="color:var(--mute); font-size:12px;">For: ${esc(p.variant)}</p>
     </div>
 
     <label>Customer Name *</label>
@@ -162,7 +205,7 @@ function showVerifyForm(p) {
     </select>
 
     <div style="margin-top:20px; display:flex; gap:10px;">
-      <button class="btn" style="flex:1;" onclick="submitVerification('${esc(p.brand)} ${esc(p.name)}')">Submit Form</button>
+      <button class="btn" style="flex:1;" onclick="submitVerification('${esc(p.variant)}')">Submit Form</button>
       <button class="btn sec" onclick="closeModal()">Cancel</button>
     </div>
   `;
@@ -184,10 +227,10 @@ function submitVerification(productName) {
     return;
   }
 
-  // Save to D.verifications
+  // Filhal hum verification ko local storage me save kar rahe hain
   D.verifications.push({
     id: uid(),
-    userId: 'guest', // Store se aane wala user
+    userId: 'guest',
     cname: name,
     cphone: phone,
     frontImg: front,
@@ -198,12 +241,11 @@ function submitVerification(productName) {
     date: Date.now()
   });
 
-  save(); // Global save function from app.js
+  save(); // Global save function
   closeModal();
   alert('Verification request submitted successfully! Our team will contact you.');
 }
 
-// --- HELPER FUNCTIONS ---
 function closeModal() {
   document.getElementById('infoModal').classList.remove('open');
 }
