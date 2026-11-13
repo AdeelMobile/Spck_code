@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Products - Adeel Mobile</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -13,64 +12,183 @@
 <script src="js/menu.js"></script>
 <script>
 if(!me) window.location.href='index.html';
-if(me.role!=='admin') window.location.href='dashboard.html'; // Sirf admin
+if(me.role!=='admin') window.location.href='dashboard.html';
 
-function loadProducts(){
-  let html = `
-  <div class="top">
-    <h2>Products</h2>
-    <button class="btn" onclick="prodM()">+ Add Phone</button>
-  </div>
-  <div class="tw"><table>
-    <tr><th>Brand</th><th>Model</th><th>Cash price</th><th>Stock</th><th></th></tr>
-    ${D.products.map(p=>`<tr>
-      <td>${esc(p.brand)}</td>
-      <td>${esc(p.name)}</td>
-      <td>${rs(p.price)}</td>
-      <td>${p.stock}</td>
-      <td>
-        <button class="btn sm sec" onclick="prodM('${p.id}')">Edit</button> 
-        <button class="btn sm red" onclick="delProd('${p.id}')">Delete</button>
-      </td>
-    </tr>`).join('')}
-  </table></div>`;
-  
-  renderApp('Products', html);
-}
+let allBrands = [];
+let allModels = [];
+let allVariants = [];
 
-function prodM(id){
-  const p = D.products.find(x=>x.id==id) || {brand:'',name:'',price:'',stock:'',img:''};
-  modal(`<h3>${id?'Edit':'New'} Phone</h3>
-  <div class="row">
-    <div><label>Brand</label><input id="pb" value="${esc(p.brand)}"></div>
-    <div><label>Model</label><input id="pn" value="${esc(p.name)}"></div>
-    <div><label>Cash price</label><input id="pp" type="number" value="${p.price}"></div>
-    <div><label>Stock</label><input id="ps" type="number" value="${p.stock}"></div>
-  </div>
-  <label>Image URL (optional)</label><input id="pi" value="${esc(p.img)}">
-  <div style="margin-top:14px;display:flex;gap:8px">
-    <button class="btn" onclick="saveProd('${id||''}')">Save</button>
-    <button class="btn sec" onclick="modal()">Cancel</button>
-  </div>`);
-}
+async function loadProductsFromSupabase() {
+  const tableBody = document.getElementById('productTableBody');
+  if (!tableBody) return;
 
-function saveProd(id){
-  const o = {brand:v('pb').trim(), name:v('pn').trim(), price:+v('pp'), stock:+v('ps'), img:v('pi').trim()};
-  if(!o.name || !o.price) return alert('Model aur price likhein');
-  
-  if(id) Object.assign(D.products.find(x=>x.id==id), o);
-  else D.products.push({id:uid(), ...o});
-  
-  save(); modal(); loadProducts();
-}
+  tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Loading products...</td></tr>';
 
-function delProd(id){
-  if(confirm('Phone delete karna hai?')){
-    D.products = D.products.filter(p=>p.id!=id);
-    save(); loadProducts();
+  try {
+    // 1. Data Fetch
+    const { data: brands } = await supabaseClient.from('brands').select('id, brand');
+    const { data: models } = await supabaseClient.from('models').select('id, brand_id, model');
+    const { data: variants } = await supabaseClient.from('variants').select('*');
+
+    allBrands = brands || [];
+    allModels = models || [];
+    allVariants = variants || [];
+
+    if (allVariants.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No products found in Database.</td></tr>';
+      return;
+    }
+
+    // 2. Data ko jod kar table mein dikhana
+    let html = '';
+    allVariants.forEach(v => {
+      const model = allModels.find(m => m.id === v.model_id);
+      if(!model) return;
+      const brand = allBrands.find(b => b.id === model.brand_id);
+      
+      const brandName = brand ? brand.brand : 'Unknown';
+      const modelName = model.model;
+      const variantName = v.variant || 'Standard';
+      const price = v.price || 0;
+      const stock = v.stock || 0;
+
+      html += `<tr>
+        <td>${esc(brandName)}</td>
+        <td>${esc(modelName)}</td>
+        <td>${esc(variantName)}</td>
+        <td>${rs(price)}</td>
+        <td>
+          <button class="btn sm sec" onclick="editProduct('${v.id}')">Edit</button>
+          <button class="btn sm red" onclick="deleteProduct('${v.id}')">Del</button>
+        </td>
+      </tr>`;
+    });
+
+    tableBody.innerHTML = html;
+
+  } catch (err) {
+    console.error(err);
+    tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--bad);">Error loading data.</td></tr>';
   }
 }
 
+function loadProducts() {
+  let html = `
+  <div class="top">
+    <h2>Products (Database)</h2>
+    <button class="btn" onclick="prodM()">+ Add Product</button>
+  </div>
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>Brand</th><th>Model</th><th>Variant</th><th>Price</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="productTableBody">
+        <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>`;
+
+  renderApp('Products', html);
+  loadProductsFromSupabase();
+}
+
+async function prodM(id) {
+  // Filhal hum new product add karne ki sahulat de rahe hain
+  // Edit feature ko baad mein add karenge
+  if(id) return alert("Edit feature coming soon!");
+
+  // Brands ki list nikalna
+  const brandOptions = allBrands.map(b => `<option value="${b.id}">${esc(b.brand)}</option>`).join('');
+
+  let html = `
+    <h3>Add New Product</h3>
+    <label>Select Brand</label>
+    <select id="p_brand">${brandOptions}</select>
+    
+    <label>Model Name</label>
+    <input id="p_model" placeholder="e.g. Galaxy A15">
+    
+    <label>Variant (RAM/Storage)</label>
+    <input id="p_variant" placeholder="e.g. 8GB/128GB">
+    
+    <label>Price (Rs)</label>
+    <input id="p_price" type="number" placeholder="0">
+    
+    <label>Stock Quantity</label>
+    <input id="p_stock" type="number" placeholder="0">
+    
+    <label>Image URL (Optional)</label>
+    <input id="p_img" placeholder="https://...">
+
+    <div style="margin-top:15px; display:flex; gap:10px;">
+      <button class="btn" onclick="saveNewProduct()">Save Product</button>
+      <button class="btn sec" onclick="modal()">Cancel</button>
+    </div>
+  `;
+  modal(html);
+}
+
+async function saveNewProduct() {
+  const brandId = document.getElementById('p_brand').value;
+  const modelName = document.getElementById('p_model').value.trim();
+  const variant = document.getElementById('p_variant').value.trim();
+  const price = +document.getElementById('p_price').value;
+  const stock = +document.getElementById('p_stock').value;
+  const img = document.getElementById('p_img').value.trim();
+
+  if(!brandId || !modelName || !price) return alert('Brand, Model and Price are required');
+
+  try {
+    // 1. Model add karo (Agar pehle se nahi hai)
+    let modelId = null;
+    const existingModel = allModels.find(m => m.model === modelName && m.brand_id == brandId);
+    
+    if(existingModel) {
+      modelId = existingModel.id;
+    } else {
+      const { data: newModel, error: mErr } = await supabaseClient.from('models').insert([{
+        brand_id: brandId,
+        model: modelName
+      }]).select();
+      
+      if(mErr) throw mErr;
+      modelId = newModel[0].id;
+    }
+
+    // 2. Variant add karo
+    const { error: vErr } = await supabaseClient.from('variants').insert([{
+      model_id: modelId,
+      variant: variant,
+      price: price,
+      stock: stock,
+      image_link: img
+    }]);
+
+    if(vErr) throw vErr;
+
+    alert('Product added successfully to Supabase!');
+    modal();
+    loadProducts(); // Reload table
+
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+async function deleteProduct(id) {
+  if(confirm('Delete this product from Database?')) {
+    const { error } = await supabaseClient.from('variants').delete().eq('id', id);
+    if(error) return alert('Delete Error: ' + error.message);
+    loadProducts();
+  }
+}
+
+function editProduct(id) {
+  alert("Edit feature coming soon!");
+}
+
+// Initialize
 loadProducts();
 </script>
 </body>
