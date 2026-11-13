@@ -19,32 +19,103 @@
 <body>
 <div id="root"></div>
 
-<!-- Supabase Library Add Ki Gayi Hai -->
+<!-- Supabase Library -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script src="js/app.js"></script>
 <script>
+// Agar pehle se login hai (session me) to direct dashboard par bhej dein
 if(me) window.location.href='my-store.html';
 
-function doLogin(){
+async function doLogin(){
   const user = v('lu').trim();
   const pass = v('lp');
   const remember = document.getElementById('rm').checked;
 
-  const u = D.users.find(x=>x.username===user && x.pass===pass);
-  if(!u) return document.getElementById('err').innerText = 'Username or password is incorrect';
-  if(!u.active) return document.getElementById('err').innerText = 'Account is disabled';
-  
-  if(remember){
-    localStorage.setItem('am_remember', JSON.stringify({u: user, p: pass}));
-  } else {
-    localStorage.removeItem('am_remember');
+  // Button ko disable karein taake double click na ho
+  const btn = document.querySelector('.btn');
+  btn.innerText = 'Signing in...';
+  btn.disabled = true;
+
+  if(!user || !pass) {
+    document.getElementById('err').innerText = 'Please enter username and password';
+    btn.innerText = 'Login';
+    btn.disabled = false;
+    return;
   }
 
-  me = u;
-  try{ sessionStorage.setItem('am_s', u.id); }catch(e){}
-  
-  window.location.href = 'my-store.html';
+  try {
+    // Supabase se check karo
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .eq('login_username', user)
+      .limit(1);
+
+    if(error) throw error;
+
+    if(!data || data.length === 0) {
+      document.getElementById('err').innerText = 'Username or password is incorrect';
+      btn.innerText = 'Login';
+      btn.disabled = false;
+      return;
+    }
+
+    const dbUser = data[0];
+
+    // Password check (Agar aapke database me password field ka naam alag hai to yahan badlein)
+    if(dbUser.pass !== pass && dbUser.password !== pass) {
+      document.getElementById('err').innerText = 'Username or password is incorrect';
+      btn.innerText = 'Login';
+      btn.disabled = false;
+      return;
+    }
+
+    // Status check
+    if(dbUser.status === 'blocked' || dbUser.status === 'disabled') {
+      document.getElementById('err').innerText = 'Account is disabled';
+      btn.innerText = 'Login';
+      btn.disabled = false;
+      return;
+    }
+
+    // Login Successful
+    if(remember){
+      localStorage.setItem('am_remember', JSON.stringify({u: user, p: pass}));
+    } else {
+      localStorage.removeItem('am_remember');
+    }
+
+    // User object banayein taake baqi pages use kar sakein
+    const loggedInUser = {
+      id: dbUser.id,
+      name: dbUser.name || 'Admin',
+      username: dbUser.login_username,
+      role: 'admin', // Filhal admin role de rahe hain
+      active: true,
+      phone: dbUser.contact || '',
+      biz: dbUser.business_name || '',
+      addr: dbUser.address || '',
+      target: dbUser.sale_target || 0,
+      wallet: 0,
+      brandMarkup: {}
+    };
+
+    // Session mein save karein
+    sessionStorage.setItem('am_s', loggedInUser.id);
+    
+    // Global `me` variable ko set karein (app.js se)
+    window.me = loggedInUser; 
+    
+    // Dashboard par bhej dein
+    window.location.href = 'my-store.html';
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById('err').innerText = 'Connection error: ' + err.message;
+    btn.innerText = 'Login';
+    btn.disabled = false;
+  }
 }
 
 function togglePass(){
