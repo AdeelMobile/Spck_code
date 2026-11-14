@@ -4,7 +4,43 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Customers - Adeel Mobile</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="css/style.css">
+<style>
+  .c-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 15px; scrollbar-width: none; }
+  .c-tabs::-webkit-scrollbar { display: none; }
+  .c-tab-btn {
+    background: #fff; border: 1px solid var(--line); color: var(--ink);
+    padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    white-space: nowrap; cursor: pointer; transition: 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .c-tab-btn.active { background: var(--pri); color: #fff; border-color: var(--pri); }
+
+  .c-controls { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+  .c-search { flex: 1; min-width: 200px; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); font-size: 14px; outline: none; }
+  .c-filter { width: 150px; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); font-size: 14px; outline: none; }
+
+  .cust-card { display: flex; flex-direction: column; background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 12px; border: 1px solid var(--line); box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+  .cust-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .cust-info b { font-size: 16px; color: var(--ink); display: block; }
+  .cust-info small { font-size: 13px; color: var(--mute); display: block; margin-top: 2px; }
+  
+  .cust-status { padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+  .cust-status.pending { background: #fef3c7; color: #92400e; }
+  .cust-status.approved { background: #d1fae5; color: #065f46; }
+  .cust-status.rejected { background: #fee2e2; color: #991b1b; }
+  .cust-status.general { background: #e2e8f0; color: #475569; }
+
+  .cust-details { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; margin-bottom: 10px; }
+  .cust-details div { background: var(--bg); padding: 6px 8px; border-radius: 6px; }
+  .cust-details span { color: var(--mute); display: block; font-size: 10px; }
+  .cust-details b { color: var(--ink); }
+
+  .btn-wa { background: #25D366; color: #fff; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: none; cursor: pointer; width: 100%; }
+  .btn-wa:active { background: #128C7E; }
+  .btn-wa svg { width: 16px; height: 16px; fill: currentColor; }
+</style>
 </head>
 <body>
 <div id="root"></div>
@@ -14,77 +50,268 @@
 if(!me) window.location.href='index.html';
 if(me.role!=='admin') window.location.href='dashboard.html';
 
-let filterDealer = '';
+let currentTab = 'installment'; 
+let searchQuery = '';
+let filterUser = '';
+let allCustomers = []; 
 
-function loadCustomers(){
-  const map = {};
-  
-  // Sales ko filter karein agar Admin ne specific user select kiya hai
-  let salesToProcess = D.sales;
-  if(filterDealer){
-    salesToProcess = D.sales.filter(s => s.userId === filterDealer);
+const marketingMsg = "Assalam o Alaikum! Adeel Mobile ki taraf se...";
+
+async function fetchCustomers() {
+  try {
+    if (!supabaseClient) return;
+    const { data, error } = await supabaseClient.from('customers').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    allCustomers = data || [];
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function getCustomersHtml() {
+  let filtered = allCustomers;
+
+  if (currentTab === 'installment') {
+    filtered = filtered.filter(c => c.type === 'Installment');
+  } else if (currentTab === 'calls') {
+    filtered = filtered.filter(c => c.type === 'WhatsApp Lead' || c.type === 'General' || !c.type);
+  } else if (currentTab === 'marketing') {
+    filtered = filtered.filter(c => c.type === 'Marketing');
   }
 
-  // Customers ka data nikalna
-  salesToProcess.forEach(s=>{
-    // Hum Customer ko Phone number se pehchante hain
-    if(!map[s.cphone]) {
-      map[s.cphone] = {
-        name: s.cname, 
-        phone: s.cphone, 
-        sales: 0, 
-        total: 0, 
-        paid: 0, 
-        last: 0,
-        dealers: new Set() // Kis kis dealer ne isko sale ki
-      };
-    }
-    map[s.cphone].sales++;
-    map[s.cphone].total += s.total;
-    map[s.cphone].paid += paid(s);
-    map[s.cphone].last = Math.max(map[s.cphone].last, s.date);
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(c => (c.name && c.name.toLowerCase().includes(q)) || (c.phone && c.phone.includes(q)));
+  }
+
+  if (filterUser) {
+    filtered = filtered.filter(c => c.added_by === filterUser);
+  }
+
+  if (filtered.length === 0) {
+    return '<div style="text-align:center; padding:40px; color:var(--mute);">No customers found. Click "Add Customer" or "Bulk Import" to add.</div>';
+  }
+
+  return filtered.map(c => {
+    const userObj = D.users.find(u => u.id === c.added_by);
+    const userName = userObj ? userObj.name : (c.added_by || 'Admin');
+
+    let statusClass = 'general';
+    let statusText = c.verify_status || c.status || 'Active';
+    if (statusText === 'Pending') statusClass = 'pending';
+    else if (statusText === 'Approved') statusClass = 'approved';
+    else if (statusText === 'Rejected') statusClass = 'rejected';
+
+    const waMsg = encodeURIComponent(`Assalam o Alaikum ${c.name !== 'Unknown' ? c.name : ''}! Adeel Mobile ki taraf se...`);
+    const waPhone = (c.phone || '').replace(/\D/g, '');
+    const waLink = `https://wa.me/${waPhone}?text=${waMsg}`;
+
+    return `
+    <div class="cust-card">
+      <div class="cust-top">
+        <div class="cust-info">
+          <b>${esc(c.name)}</b>
+          <small>📞 ${esc(c.phone)}</small>
+        </div>
+        <div class="cust-status ${statusClass}">${statusText}</div>
+      </div>
+
+      <div class="cust-details">
+        <div><span>Added By</span><b>${esc(userName)}</b></div>
+        <div><span>Date</span><b>${c.verify_date ? new Date(c.verify_date).toLocaleDateString('en-GB') : (c.created_at ? new Date(c.created_at).toLocaleDateString('en-GB') : 'N/A')}</b></div>
+        ${c.reject_reason ? `<div style="grid-column:span 2;"><span>Reason</span><b style="color:var(--bad)">${esc(c.reject_reason)}</b></div>` : ''}
+      </div>
+
+      <a href="${waLink}" target="_blank" class="btn-wa">
+        <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Message on WhatsApp
+      </a>
+    </div>
+    `;
+  }).join('');
+}
+
+async function loadCustomers(){
+  await fetchCustomers();
+
+  let html = `
+  <div class="top"><h2>Customers</h2></div>
+  
+  <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
+    <button class="btn" onclick="openAddCustomer()">➕ Add Customer</button>
+    <button class="btn sec" onclick="openBulkImport()">📥 Bulk Import</button>
+  </div>
+
+  <div class="c-tabs">
+    <button class="c-tab-btn ${currentTab==='installment'?'active':''}" onclick="switchTab('installment')">👥 Installment</button>
+    <button class="c-tab-btn ${currentTab==='calls'?'active':''}" onclick="switchTab('calls')">📞 Calls History</button>
+    <button class="c-tab-btn ${currentTab==='marketing'?'active':''}" onclick="switchTab('marketing')">📢 Marketing</button>
+  </div>
+
+  <div class="c-controls">
+    <input type="text" class="c-search" id="cSearch" placeholder="Search by name or phone..." oninput="handleSearch(this.value)" value="${esc(searchQuery)}">
     
-    // Dealer ka naam nikalna
-    const u = D.users.find(x=>x.id == s.userId);
-    if(u) map[s.cphone].dealers.add(u.name);
-  });
-  
-  const arr = Object.values(map).sort((a,b)=>b.last-a.last);
+    ${currentTab === 'installment' ? `
+    <select class="c-filter" onchange="filterUser=this.value; loadCustomers()">
+      <option value="">All Users</option>
+      ${D.users.filter(u=>u.role!=='admin').map(u=>`<option value="${u.id}" ${filterUser==u.id?'selected':''}>${esc(u.name)}</option>`).join('')}
+    </select>` : ''}
+  </div>
 
-  let html = `<div class="top">
-    <h2>Customers</h2>
-    ${me.role==='admin' ? `
-      <select style="width:220px" onchange="filterDealer=this.value; loadCustomers()">
-        <option value="">All Users / Dealers</option>
-        ${D.users.filter(u=>u.role!=='admin').map(u=>`<option value="${u.id}" ${filterDealer==u.id?'selected':''}>${esc(u.name)} ${u.biz?'('+esc(u.biz)+')':''}</option>`).join('')}
-      </select>
-    ` : ''}
-  </div>`;
+  <div id="customerListContainer">
+    ${getCustomersHtml()}
+  </div>
+  `;
 
-  html += `<div class="tw"><table>
-  <tr>
-    <th>Customer Name</th>
-    <th>Phone</th>
-    <th>Dealer(s)</th>
-    <th>Total Sales</th>
-    <th>Total Amount</th>
-    <th>Paid</th>
-    <th>Remaining</th>
-    <th>Last Sale</th>
-  </tr>
-  ${arr.map(c=>`<tr>
-    <td><b>${esc(c.name)}</b></td>
-    <td>${esc(c.phone)}</td>
-    <td><span class="tag sec" style="background:#e2e8f0;color:#475569">${Array.from(c.dealers).join(', ')}</span></td>
-    <td>${c.sales}</td>
-    <td>${rs(c.total)}</td>
-    <td style="color:var(--ok)">${rs(c.paid)}</td>
-    <td style="color:var(--bad)">${rs(c.total-c.paid)}</td>
-    <td>${new Date(c.last).toLocaleDateString('en-GB')}</td>
-  </tr>`).join('') || '<tr><td colspan="8" style="color:var(--mute)">Is user ka koi customer nahi mila.</td></tr>'}
-  </table></div>`;
-  
   renderApp('Customers', html);
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  searchQuery = '';
+  filterUser = '';
+  loadCustomers();
+}
+
+function handleSearch(val) {
+  searchQuery = val;
+  const container = document.getElementById('customerListContainer');
+  if(container) container.innerHTML = getCustomersHtml();
+}
+
+function openAddCustomer() {
+  let html = `
+    <h3 style="margin-bottom:15px; border-bottom:1px solid #ccc; padding-bottom:10px;">Add Customer</h3>
+    <label>Customer Name</label>
+    <input id="c_name" placeholder="Enter full name">
+    <label>Phone Number</label>
+    <input id="c_phone" placeholder="03xx-xxxxxxx">
+    <label>Type</label>
+    <select id="c_type">
+      <option value="Installment">Installment Customer</option>
+      <option value="Marketing">Marketing Lead</option>
+      <option value="WhatsApp Lead">WhatsApp Lead (Call History)</option>
+    </select>
+    <div style="margin-top:20px; display:flex; gap:10px;">
+      <button class="btn" style="flex:1;" onclick="saveCustomer()">Save</button>
+      <button class="btn sec" style="flex:1;" onclick="modal()">Cancel</button>
+    </div>
+  `;
+  modal(html);
+}
+
+async function saveCustomer() {
+  const name = v('c_name').trim() || 'Unknown';
+  const phone = v('c_phone').trim();
+  const type = v('c_type');
+
+  if(!phone) return alert('Phone number required');
+
+  try {
+    const { error } = await supabaseClient.from('customers').insert([{
+      name: name,
+      phone: phone,
+      type: type,
+      added_by: me.username,
+      verify_status: type === 'Installment' ? 'Pending' : 'Active'
+    }]);
+    if (error) throw error;
+    alert('Customer added!');
+    modal();
+    loadCustomers();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+// --- FINAL UPGRADED SMART PARSER ---
+function openBulkImport() {
+  let html = `
+    <h3 style="margin-bottom:15px; border-bottom:1px solid #ccc; padding-bottom:10px;">Bulk Import (WhatsApp Numbers)</h3>
+    <p style="font-size:12px; color:gray; margin-bottom:10px;">WhatsApp se copy kiya hua text yahan paste karein. Software khud numbers nikal lega.</p>
+    
+    <label>Paste Numbers Here</label>
+    <textarea id="bulk_text" rows="6" placeholder="+92 321 4265688&#10;0321-1234567&#10;+92300 9876543"></textarea>
+    
+    <label>Type</label>
+    <select id="bulk_type">
+      <option value="WhatsApp Lead">WhatsApp Lead (Call History)</option>
+      <option value="Marketing">Marketing List</option>
+      <option value="Installment">Installment Customer</option>
+    </select>
+
+    <div style="margin-top:20px; display:flex; gap:10px;">
+      <button class="btn" style="flex:1;" onclick="processBulkImport()">Import Numbers</button>
+      <button class="btn sec" style="flex:1;" onclick="modal()">Cancel</button>
+    </div>
+  `;
+  modal(html);
+}
+
+async function processBulkImport() {
+  const rawText = v('bulk_text').trim();
+  const type = v('bulk_type');
+  
+  if(!rawText) return alert('Please paste some numbers');
+
+  // 1. Har number jaisa dikhne wala hissa dhoondo (spaces, +, -, brackets allow karo)
+  let potentialNumbers = rawText.match(/[\+]?[\d\s\-\(\)]{7,20}/g) || [];
+  
+  let validNumbers = [];
+  
+  potentialNumbers.forEach(n => {
+    // 2. Sirf digits nikalo (0-9)
+    let clean = n.replace(/\D/g, '');
+    
+    // 3. Agar number 923... se start ho (12 digits), toh 0 laga kar 032... banao
+    if (clean.length === 12 && clean.startsWith('92')) {
+      clean = '0' + clean.substring(2);
+    }
+    // 4. Agar number 00923... se start ho (14 digits), toh 0 laga kar 032... banao
+    else if (clean.length === 14 && clean.startsWith('0092')) {
+      clean = '0' + clean.substring(4);
+    }
+    // 5. Agar number 3... se start ho (10 digits), toh 0 laga kar 03... banao
+    else if (clean.length === 10 && clean.startsWith('3')) {
+      clean = '0' + clean;
+    }
+
+    // 6. Ab check karo ke number valid 11-digit (03xx) bana ya nahi
+    if (clean.length === 11 && clean.startsWith('03')) {
+      validNumbers.push(clean);
+    }
+  });
+
+  // 7. Duplicates hatao
+  validNumbers = [...new Set(validNumbers)];
+
+  if(validNumbers.length === 0) return alert('No valid numbers found. Please check the format (e.g., 0321xxxxxxx or +92321xxxxxxx).');
+
+  // 8. Database mein save karo
+  let successCount = 0;
+  let duplicateCount = 0;
+
+  for (let phone of validNumbers) {
+    try {
+      const { error } = await supabaseClient.from('customers').insert([{
+        name: 'Unknown',
+        phone: phone,
+        type: type,
+        added_by: me.username,
+        verify_status: 'Active'
+      }]);
+      
+      if (error) {
+        if (error.code === '23505') duplicateCount++;
+      } else {
+        successCount++;
+      }
+    } catch (e) {}
+  }
+
+  alert(`${successCount} numbers imported successfully!\n${duplicateCount} numbers already existed.`);
+  modal();
+  loadCustomers();
 }
 
 loadCustomers();

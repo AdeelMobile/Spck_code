@@ -24,7 +24,8 @@
 
 <script src="js/app.js"></script>
 <script>
-if(me) window.location.href='my-store.html';
+// Agar pehle se login hai toh Dashboard par bhejo
+if(me) window.location.href='dashboard.html';
 
 async function doLogin(){
   const user = v('lu').trim();
@@ -84,11 +85,11 @@ async function doLogin(){
       brandMarkup: {}
     };
 
-    // Yahan change kiya hai: sessionStorage ki jagah localStorage
     localStorage.setItem('am_user', JSON.stringify(loggedInUser));
     window.me = loggedInUser; 
     
-    window.location.href = 'my-store.html';
+    // Login ke baad Dashboard par bhejo
+    window.location.href = 'dashboard.html';
 
   } catch (err) {
     document.getElementById('err').innerText = 'Catch Error: ' + err.message;
