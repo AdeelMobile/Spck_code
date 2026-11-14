@@ -1,12 +1,11 @@
 // ==========================================
 // STORE LOGIC & SECTION LOADER (Supabase Data)
-// UPDATE: 2026-11-14 (Specs Table Added)
+// UPDATE: 2026-11-15 (Brand Filters Added)
 // ==========================================
 
 document.addEventListener('DOMContentLoaded', () => {
   loadSections().then(() => {
     initBannerSlider();
-    // Data load hone ka intezar karo
     setTimeout(loadProductsFromSupabase, 1500); 
   });
 });
@@ -35,6 +34,12 @@ function initBannerSlider() {
   }
 }
 
+// --- GLOBAL VARIABLES ---
+let allBrands = [];      // Supabase se active brands
+let currentBrand = 'All'; // Filhal konsa brand selected hai
+let currentMinPrice = 0;
+let currentMaxPrice = 9999999;
+
 // --- SUPABASE DATA FETCH & RENDER ---
 async function loadProductsFromSupabase() {
   const grid = document.getElementById('productGrid');
@@ -48,16 +53,22 @@ async function loadProductsFromSupabase() {
   grid.innerHTML = '<p style="text-align:center; color:var(--mute); grid-column: span 2;">Loading products...</p>';
 
   try {
-    // Sirf active brands fetch honge (Hide wale nahi aayenge)
-    const { data: brands } = await supabaseClient.from('brands').select('id, brand').eq('is_active', true);
+    // 1. Brands, Models, Variants fetch karo
+    const { data: brandsData } = await supabaseClient.from('brands').select('id, brand').eq('is_active', true);
     const { data: models } = await supabaseClient.from('models').select('id, brand_id, model');
     const { data: variants } = await supabaseClient.from('variants').select('*');
 
-    if (!variants || !models || !brands) {
+    if (!variants || !models || !brandsData) {
       grid.innerHTML = '<p style="text-align:center; color:var(--mute); grid-column: span 2;">No data found.</p>';
       return;
     }
 
+    allBrands = brandsData;
+
+    // 2. Brand Buttons render karo
+    renderBrandButtons();
+
+    // 3. Products render karo
     let html = '';
     let count = 0;
 
@@ -65,8 +76,7 @@ async function loadProductsFromSupabase() {
       const model = models.find(m => m.id === v.model_id);
       if(!model) return; 
 
-      // Agar brand hide hai toh skip karo
-      const brand = brands.find(b => b.id === model.brand_id);
+      const brand = brandsData.find(b => b.id === model.brand_id);
       if (!brand) return; 
 
       const brandName = brand.brand;
@@ -81,14 +91,16 @@ async function loadProductsFromSupabase() {
       const msg = encodeURIComponent('Hello, I want to book ' + brandName + ' ' + pName);
       const pData = JSON.stringify(v).replace(/"/g, '&quot;');
 
-      let imgStyle = '';
-      if(v.image_link) {
-        imgStyle = `background-image:url('${v.image_link}'); background-size:contain;`;
+      let imageHtml = '';
+      if (v.image_link) {
+        imageHtml = `<img src="${v.image_link}" alt="${esc(pName)}" style="width:100%; height:100%; object-fit:contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size:40px\\'>📱</div>';" />`;
+      } else {
+        imageHtml = `<div style="font-size:40px;">📱</div>`; 
       }
 
-      html += `<div class="p-card" data-price="${price}">
+      html += `<div class="p-card" data-price="${price}" data-brand="${esc(brandName)}">
         <div class="p-brand">${esc(brandName)}</div>
-        <div class="p-img" style="${imgStyle}">${v.image_link ? '' : '📱'}</div>
+        <div class="p-img">${imageHtml}</div>
         
         <div class="p-info">
           <div class="p-name">${esc(pName)} <br><small style="font-weight:400; color:var(--mute);">${esc(pVariant)}</small></div>
@@ -128,25 +140,199 @@ async function loadProductsFromSupabase() {
   }
 }
 
-// --- MORE DETAILS POPUP (With Specs Table) ---
+// --- BRAND BUTTONS RENDER ---
+function renderBrandButtons() {
+  const container = document.getElementById('brandFiltersContainer');
+  if (!container) return;
+
+  let html = `
+    <button class="price-btn active brand-btn" 
+      data-brand="All"
+      onclick="handleBrandClick('All', this)"
+      onmousedown="startBrandPress('All', this)" 
+      onmouseup="endFilterPress()" 
+      onmouseleave="endFilterPress()"
+      ontouchstart="startBrandPress('All', this)" 
+      ontouchend="endFilterPress()" 
+      ontouchcancel="endFilterPress()">All Brands</button>
+  `;
+
+  allBrands.forEach(b => {
+    html += `
+      <button class="price-btn brand-btn" 
+        data-brand="${esc(b.brand)}"
+        onclick="handleBrandClick('${esc(b.brand)}', this)"
+        onmousedown="startBrandPress('${esc(b.brand)}', this)" 
+        onmouseup="endFilterPress()" 
+        onmouseleave="endFilterPress()"
+        ontouchstart="startBrandPress('${esc(b.brand)}', this)" 
+        ontouchend="endFilterPress()" 
+        ontouchcancel="endFilterPress()">${esc(b.brand)}</button>
+    `;
+  });
+
+  container.innerHTML = html;
+  container.style.cssText = 'max-width:1000px; margin: 0 auto 12px; padding: 0 16px; display: flex; overflow-x: auto; gap: 8px; scrollbar-width: none;';
+}
+
+// --- PRICE FILTER (With Long Press) ---
+let filterPressTimer = null;
+let isLongPressActive = false;
+
+function startFilterPress(min, max, btn) {
+  isLongPressActive = false;
+  filterPressTimer = setTimeout(() => {
+    isLongPressActive = true;
+    showPriceSharePopup(min, max, btn);
+  }, 500);
+}
+
+function endFilterPress() {
+  if (filterPressTimer) {
+    clearTimeout(filterPressTimer);
+    filterPressTimer = null;
+  }
+}
+
+function handleFilterClick(min, max, btn) {
+  if (isLongPressActive) {
+    isLongPressActive = false;
+    return;
+  }
+  currentMinPrice = min;
+  currentMaxPrice = max;
+  applyFilters();
+}
+
+// --- BRAND FILTER (With Long Press) ---
+function startBrandPress(brandName, btn) {
+  isLongPressActive = false;
+  filterPressTimer = setTimeout(() => {
+    isLongPressActive = true;
+    showBrandSharePopup(brandName);
+  }, 500);
+}
+
+function handleBrandClick(brandName, btn) {
+  if (isLongPressActive) {
+    isLongPressActive = false;
+    return;
+  }
+  document.querySelectorAll('.brand-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentBrand = brandName;
+  applyFilters();
+}
+
+// --- APPLY FILTERS (Brand + Price) ---
+function applyFilters() {
+  const cards = document.querySelectorAll('.p-card');
+  let visibleCount = 0;
+
+  cards.forEach(c => {
+    const price = parseInt(c.getAttribute('data-price')) || 0;
+    const brand = c.getAttribute('data-brand');
+
+    const priceMatch = price >= currentMinPrice && price <= currentMaxPrice;
+    const brandMatch = currentBrand === 'All' || brand === currentBrand;
+
+    if (priceMatch && brandMatch) {
+      c.style.display = 'flex';
+      visibleCount++;
+    } else {
+      c.style.display = 'none';
+    }
+  });
+
+  // Show no products message
+  const grid = document.getElementById('productGrid');
+  let noProductsMsg = document.getElementById('noProductsMsg');
+  
+  if (visibleCount === 0) {
+    if (!noProductsMsg) {
+      noProductsMsg = document.createElement('p');
+      noProductsMsg.id = 'noProductsMsg';
+      noProductsMsg.style.cssText = 'text-align:center; color:var(--mute); grid-column: span 2; padding:20px;';
+      noProductsMsg.innerText = 'No products found for this filter.';
+      grid.appendChild(noProductsMsg);
+    }
+  } else {
+    if (noProductsMsg) noProductsMsg.remove();
+  }
+}
+
+// --- SHARE POPUPS ---
+function showPriceSharePopup(min, max, btn) {
+  const rangeText = btn.innerText;
+  const pageUrl = window.location.origin + window.location.pathname;
+  const shareUrl = pageUrl + `?min=${min}&max=${max}`;
+  const shareMessage = encodeURIComponent(`Adeel Mobile par ${rangeText} tak ke mobile phones ka installment plan dekhein!\n\n${shareUrl}`);
+
+  let html = `
+    <div style="text-align:center; padding:10px;">
+      <div style="font-size:40px; margin-bottom:10px;">🔗</div>
+      <h3 style="margin-bottom:5px;">Share Price Range</h3>
+      <p style="color:var(--mute); font-size:13px; margin-bottom:20px;">"${rangeText}" wale phones share karein</p>
+      <a href="https://wa.me/?text=${shareMessage}" target="_blank" class="btn" style="background:#25D366; display:block; text-decoration:none; width:100%; margin-bottom:10px;">📱 Share on WhatsApp</a>
+      <button class="btn sec" style="width:100%; margin-bottom:10px;" onclick="copyFilterLink('${shareUrl}')">📋 Copy Link</button>
+      <button class="btn sec" style="width:100%;" onclick="closeModal()">Close</button>
+    </div>
+  `;
+  openShareModal('Share Price Range', html);
+}
+
+function showBrandSharePopup(brandName) {
+  const pageUrl = window.location.origin + window.location.pathname;
+  const shareUrl = pageUrl + `?brand=${encodeURIComponent(brandName)}`;
+  const shareMessage = encodeURIComponent(`Adeel Mobile par ${brandName} ke mobile phones ka installment plan dekhein!\n\n${shareUrl}`);
+
+  let html = `
+    <div style="text-align:center; padding:10px;">
+      <div style="font-size:40px; margin-bottom:10px;">🔗</div>
+      <h3 style="margin-bottom:5px;">Share Brand</h3>
+      <p style="color:var(--mute); font-size:13px; margin-bottom:20px;">${brandName} ke phones share karein</p>
+      <a href="https://wa.me/?text=${shareMessage}" target="_blank" class="btn" style="background:#25D366; display:block; text-decoration:none; width:100%; margin-bottom:10px;">📱 Share on WhatsApp</a>
+      <button class="btn sec" style="width:100%; margin-bottom:10px;" onclick="copyFilterLink('${shareUrl}')">📋 Copy Link</button>
+      <button class="btn sec" style="width:100%;" onclick="closeModal()">Close</button>
+    </div>
+  `;
+  openShareModal('Share Brand', html);
+}
+
+function openShareModal(title, html) {
+  document.getElementById('modalTitle').innerText = title;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('infoModal').classList.add('open');
+}
+
+function copyFilterLink(url) {
+  try {
+    navigator.clipboard.writeText(url).then(() => alert('Link copied!'));
+  } catch(e) {
+    const temp = document.createElement('textarea');
+    temp.value = url;
+    document.body.appendChild(temp);
+    temp.select();
+    document.execCommand('copy');
+    document.body.removeChild(temp);
+    alert('Link copied!');
+  }
+}
+
+// --- MORE DETAILS POPUP ---
 function showMore(p) {
   const price = p.price || 0;
   const advance = price * 0.30;
   const monthly9 = (price - advance) / 9;
   const monthly6 = (price - advance) / 6;
 
-  // Specs ko Table mein convert karne ka logic
   let specsTableHtml = '<p style="color:var(--mute); font-size:13px;">No specifications available.</p>';
   
   if (p.specs) {
     let specsObj = p.specs;
-    
-    // Agar database se string aayi hai toh JSON parse karo
     if (typeof p.specs === 'string') {
       try { specsObj = JSON.parse(p.specs); } catch(e) { specsObj = null; }
     }
-    
-    // Agar JSON object hai toh Table banao
     if (specsObj && typeof specsObj === 'object' && Object.keys(specsObj).length > 0) {
       specsTableHtml = `<table style="width:100%; border-collapse: collapse; font-size:13px; margin-top:10px;">
         ${Object.entries(specsObj).map(([key, value]) => `
@@ -159,9 +345,16 @@ function showMore(p) {
     }
   }
 
+  let imagePopup = '';
+  if (p.image_link) {
+    imagePopup = `<img src="${p.image_link}" style="max-height:180px; object-fit:contain; margin-bottom:10px;">`;
+  } else {
+    imagePopup = `<div style="font-size:60px; margin-bottom:10px;">📱</div>`;
+  }
+
   let html = `
     <div style="text-align:center; margin-bottom:20px;">
-      <div style="font-size:60px; margin-bottom:10px;">📱</div>
+      ${imagePopup}
       <h2 style="margin:0; font-size:20px;">${esc(p.variant)}</h2>
     </div>
     
