@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Users - Adeel Mobile</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="css/style.css">
 <style>
   /* Top Buttons (Tabs) */
@@ -24,14 +25,41 @@
   
   .u-panel h3 { font-size: 16px; color: var(--ink); margin-bottom: 15px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
 
-  /* Users List (Card style) */
-  .user-card { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
-  .user-card:hover { border-color: var(--pri); background: #fff; }
-  .user-info b { display: block; font-size: 14px; color: var(--ink); }
+  /* Search Bar */
+  .u-search { width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); margin-bottom: 15px; font-size: 14px; outline: none; }
+  .u-search:focus { border-color: var(--pri); }
+
+  /* Users List (Detailed Card style) */
+  .user-card { 
+    display: flex; flex-direction: column;
+    padding: 15px; border: 1px solid var(--line); border-radius: 12px; 
+    background: var(--bg); margin-bottom: 12px; cursor: pointer; transition: 0.2s; 
+    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  }
+  .user-card:active { background: #fff; border-color: var(--pri); }
+  
+  .user-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; border-bottom: 1px dashed var(--line); padding-bottom: 10px; }
+  .user-info b { display: block; font-size: 15px; color: var(--ink); }
   .user-info small { display: block; font-size: 12px; color: var(--mute); margin-top: 2px; }
-  .user-status { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
+  
+  .user-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; }
+  .stat-box { background: #fff; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); }
+  .stat-box span { color: var(--mute); display: block; font-size: 10px; margin-bottom: 2px; }
+  .stat-box b { color: var(--ink); font-size: 13px; }
+  
+  /* Progress Bar */
+  .progress-wrap { margin-top: 8px; background: #e2e8f0; border-radius: 4px; height: 6px; overflow: hidden; width: 100%; }
+  .progress-bar { height: 100%; background: var(--ok); width: 0%; transition: width 0.3s ease; }
+
+  .user-status { padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
   .user-status.active { background: var(--ok); color: #fff; }
   .user-status.blocked { background: var(--bad); color: #fff; }
+
+  /* Brand Profit Grid */
+  .brand-profit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .brand-profit-item { display: flex; align-items: center; justify-content: space-between; background: var(--bg); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); }
+  .brand-profit-item span { font-size: 13px; font-weight: 600; color: var(--ink); }
+  .brand-profit-item input { width: 60px; padding: 6px; margin: 0; text-align: center; border-radius: 6px; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -42,113 +70,189 @@
 if(!me) window.location.href='index.html';
 if(me.role!=='admin') window.location.href='dashboard.html';
 
-let currentTab = 'all'; // Default tab
+let currentTab = 'all'; 
+let activeBrands = []; 
+let userSearch = ''; 
+let editUserId = null; 
+let pressTimer; 
 
-function loadUsers() {
-  const U = D.users.filter(u => u.role !== 'admin');
+async function fetchActiveBrands() {
+  try {
+    if (!supabaseClient) return;
+    const { data, error } = await supabaseClient.from('brands').select('id, brand').eq('is_active', true);
+    if (error) throw error;
+    activeBrands = data || [];
+  } catch (err) {
+    console.error("Brands fetch error:", err);
+  }
+}
+
+// --- Helper Function: Detailed User List HTML ---
+function getUserListHtml() {
+  const allNonAdminUsers = D.users.filter(u => u.role !== 'admin');
+  const filteredUsers = allNonAdminUsers.filter(u => 
+    u.name.toLowerCase().includes(userSearch.toLowerCase()) || 
+    u.username.toLowerCase().includes(userSearch.toLowerCase())
+  );
+
+  return filteredUsers.map(u => {
+    // Stats Calculate karo
+    const userSales = D.sales.filter(s => s.userId === u.id);
+    const totalSaleAmount = userSales.reduce((sum, s) => sum + s.total, 0);
+    const achieveTarget = totalSaleAmount; 
+    const wallet = u.wallet || 0;
+    
+    // Target Percent calculate karo
+    let percent = 0;
+    if (u.target > 0) {
+      percent = Math.round((achieveTarget / u.target) * 100);
+      if(percent > 100) percent = 100; // Bar 100% se zyada na jaye
+    }
+
+    return `
+    <div class="user-card" 
+         onmousedown="startUserPress('${u.id}')" 
+         onmouseup="cancelPress()" onmouseleave="cancelPress()"
+         ontouchstart="startUserPress('${u.id}')" 
+         ontouchend="cancelPress()" ontouchcancel="cancelPress()">
+      
+      <div class="user-card-top">
+        <div class="user-info">
+          <b>${esc(u.name)}</b>
+          <small>@${esc(u.username)} | ${esc(u.phone || 'No Phone')}</small>
+        </div>
+        <div class="user-status ${u.active ? 'active' : 'blocked'}">${u.active ? 'Active' : 'Blocked'}</div>
+      </div>
+
+      <div class="user-stats-grid">
+        <div class="stat-box">
+          <span>Target (Rs)</span>
+          <b>${rs(u.target)}</b>
+        </div>
+        <div class="stat-box">
+          <span>Achieved (Rs)</span>
+          <b style="color:var(--pri)">${rs(achieveTarget)}</b>
+        </div>
+        <div class="stat-box">
+          <span>Total Sale Amount</span>
+          <b>${rs(totalSaleAmount)}</b>
+        </div>
+        <div class="stat-box">
+          <span>Wallet Balance</span>
+          <b style="color:var(--ok)">${rs(wallet)}</b>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; font-size:11px; margin-top:8px; color:var(--mute);">
+        <span>Performance: <b>${percent}%</b></span>
+        <span>${percent >= 100 ? '🎯 Target Achieved!' : ''}</span>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar" style="width: ${percent}%;"></div>
+      </div>
+    </div>
+    `;
+  }).join('') || '<p style="text-align:center; color:var(--mute);">No users found.</p>';
+}
+
+// Long Press Start
+function startUserPress(id) {
+  pressTimer = setTimeout(() => {
+    startEditUser(id); 
+  }, 600); 
+}
+
+function cancelPress() {
+  clearTimeout(pressTimer);
+}
+
+function handleSearch(val) {
+  userSearch = val;
+  const listContainer = document.getElementById('userListContainer');
+  if(listContainer) {
+    listContainer.innerHTML = getUserListHtml();
+  }
+}
+
+async function loadUsers() {
+  await fetchActiveBrands();
+
+  const editUserObj = editUserId ? D.users.find(u => u.id === editUserId) : null;
   
+  const vName = editUserObj ? esc(editUserObj.name) : '';
+  const vUser = editUserObj ? esc(editUserObj.username) : '';
+  const vPass = editUserObj ? esc(editUserObj.pass) : '';
+  const vPhone = editUserObj ? esc(editUserObj.phone) : '';
+  const vBiz = editUserObj ? esc(editUserObj.biz) : '';
+  const vAddr = editUserObj ? esc(editUserObj.addr) : '';
+  const vTarget = editUserObj ? editUserObj.target : '';
+
   let html = `
   <div class="top"><h2>Users Management</h2></div>
   
-  <!-- Top Tabs (Buttons) with New Names -->
+  <!-- Sirf 2 Tabs rakhe hain -->
   <div class="u-tabs">
     <button class="u-tab-btn ${currentTab==='all'?'active':''}" onclick="switchTab('all')">👥 All Users</button>
-    <button class="u-tab-btn ${currentTab==='create'?'active':''}" onclick="switchTab('create')">➕ Create User</button>
-    <button class="u-tab-btn ${currentTab==='performance'?'active':''}" onclick="switchTab('performance')">📈 Users Performance</button>
-    <button class="u-tab-btn ${currentTab==='wallet'?'active':''}" onclick="switchTab('wallet')">💰 Wallet Balance</button>
-    <button class="u-tab-btn ${currentTab==='report'?'active':''}" onclick="switchTab('report')">📊 Users Sale Report</button>
+    <button class="u-tab-btn ${currentTab==='create'?'active':''}" onclick="switchTab('create')">➕ ${editUserId ? 'Edit User' : 'Create User'}</button>
   </div>
 
   <!-- 1. All Users Panel -->
   <div class="u-panel ${currentTab==='all'?'active':''}">
     <h3>All Users</h3>
-    ${U.map(u => `
-      <div class="user-card" onclick="editUser('${u.id}')">
-        <div class="user-info">
-          <b>${esc(u.name)}</b>
-          <small>Username: ${esc(u.username)} | Phone: ${esc(u.phone || '-')}</small>
-        </div>
-        <div class="user-status ${u.active ? 'active' : 'blocked'}">${u.active ? 'Active' : 'Blocked'}</div>
-      </div>
-    `).join('') || '<p style="text-align:center; color:var(--mute);">No users found.</p>'}
+    <input type="text" class="u-search" id="searchUser" placeholder="Search by name or username..." oninput="handleSearch(this.value)" value="${esc(userSearch)}">
+    
+    <div id="userListContainer">
+      ${getUserListHtml()}
+    </div>
   </div>
 
-  <!-- 2. Create User Panel -->
+  <!-- 2. Create/Edit User Panel -->
   <div class="u-panel ${currentTab==='create'?'active':''}">
-    <h3>Create User</h3>
+    <h3>${editUserId ? 'Edit User' : 'Create User'}</h3>
     <label>Full Name</label>
-    <input id="u_name" placeholder="Enter name">
+    <input id="u_name" value="${vName}">
     
     <label>Username</label>
-    <input id="u_username" placeholder="Enter username">
+    <input id="u_username" value="${vUser}">
     
     <label>Password</label>
-    <input id="u_pass" type="text" placeholder="Enter password">
+    <input id="u_pass" type="text" value="${vPass}">
     
     <label>Phone / WhatsApp</label>
-    <input id="u_phone" placeholder="03xx-xxxxxxx">
+    <input id="u_phone" value="${vPhone}">
     
     <label>Business Name</label>
-    <input id="u_biz" placeholder="Shop name">
+    <input id="u_biz" value="${vBiz}">
     
     <label>Address</label>
-    <input id="u_addr" placeholder="Address">
+    <input id="u_addr" value="${vAddr}">
     
     <label>Monthly Target (Rs)</label>
-    <input id="u_target" type="number" placeholder="0">
+    <input id="u_target" type="number" value="${vTarget}">
     
-    <button class="btn" style="margin-top:15px; width:100%" onclick="createUser()">Save User</button>
-  </div>
-
-  <!-- 3. Users Performance Panel -->
-  <div class="u-panel ${currentTab==='performance'?'active':''}">
-    <h3>Users Performance</h3>
-    ${U.map(u => {
-      const userSales = D.sales.filter(s => s.userId === u.id);
-      const ach = userSales.reduce((sum, s) => sum + s.total, 0);
-      const percent = u.target > 0 ? Math.round((ach / u.target) * 100) : 0;
-      return `
-      <div class="user-card">
-        <div class="user-info">
-          <b>${esc(u.name)}</b>
-          <small>Target: ${rs(u.target)} | Achieved: ${rs(ach)}</small>
-        </div>
-        <div class="user-status active">${percent}%</div>
+    <div style="margin-top: 20px; border-top: 1px dashed var(--line); padding-top: 15px;">
+      <label style="font-size: 15px; color: var(--pri); font-weight: bold; margin-bottom: 10px; display:block;">Brand Wise % Profit</label>
+      <p style="font-size: 11px; color: var(--mute); margin-bottom: 10px;">Sirf website par show honay walay brands yahan nazar aayenge.</p>
+      
+      <div class="brand-profit-grid">
+        ${activeBrands.map(b => {
+          let brandVal = '';
+          if (editUserObj && editUserObj.brandMarkup && editUserObj.brandMarkup[b.brand]) {
+            brandVal = editUserObj.brandMarkup[b.brand];
+          }
+          return `
+          <div class="brand-profit-item">
+            <span>${esc(b.brand)}</span>
+            <input type="number" id="profit_${b.id}" value="${brandVal}" placeholder="0" min="0">
+          </div>
+        `}).join('') || '<p style="font-size:12px; color:var(--mute); grid-column: span 2;">No active brands found in Supabase.</p>'}
       </div>
-    `}).join('') || '<p style="text-align:center; color:var(--mute);">No users to show.</p>'}
-  </div>
-
-  <!-- 4. Wallet Balance Panel -->
-  <div class="u-panel ${currentTab==='wallet'?'active':''}">
-    <h3>Wallet Balance</h3>
-    ${U.map(u => {
-      const wallet = u.wallet || 0;
-      return `
-      <div class="user-card">
-        <div class="user-info">
-          <b>${esc(u.name)}</b>
-          <small>Username: ${esc(u.username)}</small>
-        </div>
-        <div class="user-status ${wallet > 0 ? 'active' : 'blocked'}">${rs(wallet)}</div>
-      </div>
-    `}).join('') || '<p style="text-align:center; color:var(--mute);">No users to show.</p>'}
-  </div>
-
-  <!-- 5. Users Sale Report Panel -->
-  <div class="u-panel ${currentTab==='report'?'active':''}">
-    <h3>Users Sale Report</h3>
-    ${U.map(u => {
-      const userSales = D.sales.filter(s => s.userId === u.id);
-      const totalSale = userSales.reduce((sum, s) => sum + s.total, 0);
-      return `
-      <div class="user-card">
-        <div class="user-info">
-          <b>${esc(u.name)}</b>
-          <small>Total Sales: ${rs(totalSale)}</small>
-        </div>
-        <div class="user-status active">${userSales.length} Sales</div>
-      </div>
-    `}).join('') || '<p style="text-align:center; color:var(--mute);">No sales data found.</p>'}
+    </div>
+    
+    <div style="display:flex; gap:10px; margin-top:20px;">
+      <button class="btn" style="flex:1;" onclick="saveUser()">${editUserId ? 'Update User' : 'Save User'}</button>
+      ${editUserId ? `<button class="btn sec" style="flex:1;" onclick="cancelEdit()">Cancel</button>` : ''}
+    </div>
   </div>
 
   `;
@@ -158,12 +262,25 @@ function loadUsers() {
 
 function switchTab(tab) {
   currentTab = tab;
+  if(tab !== 'create') {
+    editUserId = null; 
+  }
   loadUsers();
 }
 
-// --- Actions ---
+function startEditUser(id) {
+  editUserId = id; 
+  currentTab = 'create'; 
+  loadUsers();
+}
 
-function createUser() {
+function cancelEdit() {
+  editUserId = null; 
+  currentTab = 'all'; 
+  loadUsers();
+}
+
+function saveUser() {
   const name = v('u_name').trim();
   const un = v('u_username').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
   const pass = v('u_pass').trim();
@@ -173,38 +290,53 @@ function createUser() {
   const target = +v('u_target');
 
   if(!name || !un || !pass) return alert('Name, username and password are required');
-  if(D.users.some(x => x.username === un)) return alert('This username already exists');
+  
+  if(!editUserId && D.users.some(x => x.username === un)) return alert('This username already exists');
+  if(editUserId && D.users.some(x => x.username === un && x.id !== editUserId)) return alert('This username is taken by another user');
 
-  D.users.push({
-    id: uid(),
-    name: name,
-    username: un,
-    pass: pass,
-    phone: phone,
-    biz: biz,
-    addr: addr,
-    target: target,
-    role: 'user',
-    active: true,
-    wallet: 0,
-    brandMarkup: {}
+  let brandMarkup = {};
+  activeBrands.forEach(b => {
+    const val = $(`profit_${b.id}`).value;
+    if(val && +val > 0) {
+      brandMarkup[b.brand] = +val;
+    }
   });
 
-  save();
-  alert('User created successfully!');
-  switchTab('all');
-}
-
-function editUser(id) {
-  const u = D.users.find(x => x.id === id);
-  if(!u) return;
-  
-  const newName = prompt('Edit Name:', u.name);
-  if(newName !== null && newName.trim() !== '') {
-    u.name = newName.trim();
+  if (editUserId) {
+    const u = D.users.find(x => x.id === editUserId);
+    if(u) {
+      u.name = name;
+      u.username = un;
+      u.pass = pass;
+      u.phone = phone;
+      u.biz = biz;
+      u.addr = addr;
+      u.target = target;
+      u.brandMarkup = brandMarkup;
+      save();
+      alert('User updated successfully!');
+    }
+  } else {
+    D.users.push({
+      id: uid(),
+      name: name,
+      username: un,
+      pass: pass,
+      phone: phone,
+      biz: biz,
+      addr: addr,
+      target: target,
+      role: 'user',
+      active: true,
+      wallet: 0,
+      brandMarkup: brandMarkup
+    });
     save();
-    loadUsers();
+    alert('User created successfully!');
   }
+  
+  editUserId = null;
+  switchTab('create'); 
 }
 
 loadUsers();
