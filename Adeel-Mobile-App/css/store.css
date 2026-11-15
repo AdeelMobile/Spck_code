@@ -12,38 +12,57 @@ body { background: #f8fafc; margin: 0; font-family: 'Inter', var(--fb); }
   box-shadow: 0 2px 10px rgba(0,0,0,0.02);
 }
 
-/* 3D ANIMATED LOGO (BLACK) */
+/* 3D ANIMATED LOGO (BLACK) - CHOTA SIZE */
 .store-logo-3d {
-  font-size: 26px; 
-  margin: 0 0 4px 0; 
+  font-size: 18px; /* CHOTA KAR DIA */
+  margin: 0 0 2px 0; 
   font-family: 'Inter', sans-serif; 
   font-weight: 900;
   letter-spacing: -0.5px;
-  color: #000000; /* Black Text */
+  color: #000000;
   
-  /* 3D Shadow Effect (Grey) */
   text-shadow: 
     0px 1px 0px #cbd5e1,
     0px 2px 0px #94a3b8,
     0px 3px 0px #64748b,
     0px 4px 5px rgba(0,0,0,0.3);
     
-  /* Floating Animation */
   animation: floatLogo 3s ease-in-out infinite;
 }
 
-/* Keyframes for Floating Effect */
 @keyframes floatLogo {
   0% { transform: translateY(0px); }
   50% { transform: translateY(-3px); text-shadow: 0px 6px 5px rgba(0,0,0,0.2); }
   100% { transform: translateY(0px); }
 }
 
-.store-header p { 
-  font-size: 12px; 
+/* Typewriter Animation har 10 second baad */
+.store-tagline {
+  font-size: 11px; 
   margin: 0; 
   color: #64748b; 
   font-family: 'Inter', var(--fb);
+  
+  overflow: hidden; 
+  white-space: nowrap; 
+  border-right: 2px solid #64748b;
+  width: 0;
+  
+  animation: 
+    typeAndDelete 10s steps(25, end) infinite, 
+    blink-caret 0.75s step-end infinite;
+}
+
+@keyframes typeAndDelete {
+  0% { width: 0; }
+  20% { width: 100%; }
+  80% { width: 100%; }
+  100% { width: 0; }
+}
+
+@keyframes blink-caret {
+  from, to { border-color: transparent }
+  50% { border-color: #64748b }
 }
 
 /* Features Dropdown Styles */
@@ -196,5 +215,5 @@ body { background: #f8fafc; margin: 0; font-family: 'Inter', var(--fb); }
   .btn-wa { padding: 12px; font-size: 14px; border-radius: 10px; gap: 8px; }
   .slide { height: 180px; }
   .slide h2 { font-size: 24px; }
-  .store-logo-3d { font-size: 32px; }
+  .store-logo-3d { font-size: 22px; } /* Desktop ke liye bhi chota */
 }
