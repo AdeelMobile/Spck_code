@@ -26,6 +26,15 @@ const ICONS = {
   design: '<svg width="20" height="20" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>'
 };
 
+// --- GLOBAL FIX FOR MENU BUTTON (☰) ---
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    const burgerBtns = document.querySelectorAll('.burger');
+    const svgIcon = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
+    burgerBtns.forEach(btn => { if (btn.innerHTML.trim() !== svgIcon) btn.innerHTML = svgIcon; });
+  }, 100);
+});
+
 function renderApp(title, contentHTML) {
   if (!checkAuth()) return;
   
@@ -46,8 +55,7 @@ function renderApp(title, contentHTML) {
       ['verifications.html', 'Verifications', ICONS.verify],
       ['customers.html', 'Customers', ICONS.customers],
       ['users.html', 'Performance', ICONS.performance],
-      ['my-store.html', 'Website Control', ICONS.website],
-      ['settings.html', 'Rules', ICONS.rules]
+      ['rules.html', 'Rules', ICONS.rules] // <-- Yahan rules.html kar dia
     ]},
     { id: 'pos', cat: 'POS', icon: ICONS.pos, items: [
       ['cash-in-hand.html', 'Cash in hand', ICONS.cash],
@@ -104,6 +112,8 @@ function renderApp(title, contentHTML) {
       let btnClass = "nav";
       if (isOpen || hasActiveChild) btnClass += " on";
       
+      const arrowSvg = `<svg class="arrow-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="transform: ${isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}; transition:0.3s;"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+      
       return `
         <div style="margin-bottom:6px;">
           <div class="${btnClass}" onmousedown="event.preventDefault()" onclick="toggleDropdown('${group.id}')" style="justify-content:space-between; cursor:pointer; user-select:none;">
@@ -111,7 +121,7 @@ function renderApp(title, contentHTML) {
               <span class="cat-icon">${group.icon}</span>
               <span>${group.cat}</span>
             </div>
-            <span class="arrow-icon" style="font-size:12px; transform: ${isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}; transition:0.3s;">▼</span>
+            ${arrowSvg}
           </div>
           <div id="dd-${group.id}" style="display:${isOpen ? 'block' : 'none'}; padding-left:10px; border-left:2px solid var(--line); margin-left:12px; margin-top:4px;">
             ${group.items.map(n => `
@@ -134,7 +144,9 @@ function renderApp(title, contentHTML) {
   const html = `
   <div class="app">
     <div class="mbar">
-      <button class="burger" onclick="toggleMenu()">☰</button>
+      <button class="burger" onclick="toggleMenu()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
       <b>${esc(D.settings.shop)}</b>
     </div>
     <div class="scrim" id="scr" onclick="toggleMenu(0)"></div>
@@ -177,4 +189,4 @@ function toggleMenu(open) {
   const isOpen = open === undefined ? !sd.classList.contains('open') : open;
   sd.classList.toggle('open', isOpen);
   sc.classList.toggle('open', isOpen);
-} // <--- YEH BRACKET MISSING THA, AB ADD KAR DIYA HAI
+}

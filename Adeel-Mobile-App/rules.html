@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Installment Rules - Adeel Mobile</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .rule-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; max-width: 520px; margin-bottom: 20px; }
+  .rule-card h3 { font-size: 16px; color: var(--ink); margin-bottom: 15px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+  .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+if(me.role!=='admin') window.location.href='dashboard.html';
+
+function loadRules(){
+  const s = D.settings;
+  
+  let html = `
+  <div class="top"><h2>Installment Rules</h2></div>
+  
+  <div class="rule-card">
+    <h3>Advance Percentage (Price ke hisaab se)</h3>
+    <div class="rules-grid">
+      <div>
+        <label style="margin-top:0; font-size:12px;">Agar Price < 60,000</label>
+        <input id="r_adv_low" type="number" value="${s.advLow || 20}" min="1" max="100">
+      </div>
+      <div>
+        <label style="margin-top:0; font-size:12px;">Agar Price >= 60,000</label>
+        <input id="r_adv_high" type="number" value="${s.advHigh || 30}" min="1" max="100">
+      </div>
+    </div>
+
+    <h3 style="margin-top:15px;">Markup Percentage (Months ke hisaab se)</h3>
+    <div class="rules-grid">
+      <div>
+        <label style="margin-top:0; font-size:12px;">3 Months</label>
+        <input id="r_mark3" type="number" value="${s.mark3 || 15}" min="0">
+      </div>
+      <div>
+        <label style="margin-top:0; font-size:12px;">6 Months</label>
+        <input id="r_mark6" type="number" value="${s.mark6 || 27}" min="0">
+      </div>
+      <div>
+        <label style="margin-top:0; font-size:12px;">9 Months</label>
+        <input id="r_mark9" type="number" value="${s.mark9 || 37}" min="0">
+      </div>
+    </div>
+
+    <button class="btn" style="margin-top:15px; width:100%;" onclick="saveRules()">Save Rules</button>
+    <p style="font-size:11px; color:var(--mute); text-align:center; margin-top:10px;">Website refresh karne par yeh rules apply ho jayenge.</p>
+  </div>
+  `;
+
+  renderApp('Installment Rules', html);
+}
+
+function saveRules(){
+  D.settings.advLow = +v('r_adv_low') || 20;
+  D.settings.advHigh = +v('r_adv_high') || 30;
+  D.settings.mark3 = +v('r_mark3') || 15;
+  D.settings.mark6 = +v('r_mark6') || 27;
+  D.settings.mark9 = +v('r_mark9') || 37;
+  
+  save(); 
+  alert('Installment Rules Saved! Website par apply ho jayenge.'); 
+  loadRules();
+}
+
+loadRules();
+</script>
+</body>
+</html>
