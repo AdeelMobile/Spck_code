@@ -12,33 +12,31 @@ body { background: #f8fafc; margin: 0; font-family: 'Inter', var(--fb); }
   box-shadow: 0 2px 10px rgba(0,0,0,0.02);
 }
 
-/* 3D ANIMATED LOGO (BLACK) - CHOTA SIZE */
+/* 3D ANIMATED LOGO (BLACK) - Thora aur bara size */
 .store-logo-3d {
-  font-size: 18px; /* CHOTA KAR DIA */
+  font-size: 24px; /* THORA AUR BARA KAR DIA */
   margin: 0 0 2px 0; 
   font-family: 'Inter', sans-serif; 
   font-weight: 900;
-  letter-spacing: -0.5px;
+  letter-spacing: 0;
   color: #000000;
   
   text-shadow: 
     0px 1px 0px #cbd5e1,
-    0px 2px 0px #94a3b8,
-    0px 3px 0px #64748b,
-    0px 4px 5px rgba(0,0,0,0.3);
+    0px 2px 2px rgba(0,0,0,0.2);
     
   animation: floatLogo 3s ease-in-out infinite;
 }
 
 @keyframes floatLogo {
   0% { transform: translateY(0px); }
-  50% { transform: translateY(-3px); text-shadow: 0px 6px 5px rgba(0,0,0,0.2); }
+  50% { transform: translateY(-1px); text-shadow: 0px 2px 3px rgba(0,0,0,0.2); }
   100% { transform: translateY(0px); }
 }
 
 /* Typewriter Animation har 10 second baad */
 .store-tagline {
-  font-size: 11px; 
+  font-size: 12px; 
   margin: 0; 
   color: #64748b; 
   font-family: 'Inter', var(--fb);
@@ -215,5 +213,5 @@ body { background: #f8fafc; margin: 0; font-family: 'Inter', var(--fb); }
   .btn-wa { padding: 12px; font-size: 14px; border-radius: 10px; gap: 8px; }
   .slide { height: 180px; }
   .slide h2 { font-size: 24px; }
-  .store-logo-3d { font-size: 22px; } /* Desktop ke liye bhi chota */
+  .store-logo-3d { font-size: 28px; } /* Desktop ke liye aur bara */
 }
