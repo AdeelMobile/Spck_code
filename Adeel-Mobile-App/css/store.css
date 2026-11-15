@@ -7,13 +7,23 @@ body { background: #f8fafc; margin: 0; font-family: 'Inter', var(--fb); }
   color: #000000; 
   padding: 16px 20px; 
   border-bottom: 1px solid #e2e8f0;
-  text-align: center; 
   position: relative; 
   margin-bottom: 16px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.02);
 }
-.store-header h1 { font-size: 22px; margin: 0 0 4px 0; color: #000000; font-family: 'Inter', var(--fh); font-weight: 700; }
-.store-header p { font-size: 12px; margin: 0; color: #64748b; font-family: 'Inter', var(--fb); }
+.store-header h1 { 
+  font-size: 22px; 
+  margin: 0 0 4px 0; 
+  color: #000000; 
+  font-family: 'Inter', var(--fh); 
+  font-weight: 700;
+}
+.store-header p { 
+  font-size: 12px; 
+  margin: 0; 
+  color: #64748b; 
+  font-family: 'Inter', var(--fb);
+}
 
 /* Features Dropdown Styles */
 .features-btn {

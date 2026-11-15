@@ -1,19 +1,20 @@
 <div class="store-header" style="position: relative;">
   <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
-    <div style="flex: 1;"></div> <!-- Left spacer -->
-    <div style="text-align: center; flex: 2;">
-      <h1>Adeel Mobile</h1>
-      <p>Your Trusted Mobile Store</p>
+    
+    <!-- Left Side: Logo / Name -->
+    <div style="text-align: left;">
+      <h1 style="margin:0; font-size: 22px;">Adeel Mobile</h1>
+      <p style="margin:0; font-size: 12px; color: #64748b;">Your Trusted Mobile Store</p>
     </div>
-    <div style="flex: 1; text-align: right;">
-      <!-- Features Dropdown Button -->
-      <div class="features-dropdown-wrapper" style="display:inline-block; position:relative;">
-        <button class="features-btn" onclick="toggleFeaturesMenu()">Features ▼</button>
-        <div id="featuresMenu" class="features-menu">
-          <button onclick="openBudgetCalculator()">🧮 Budget Calculator</button>
-          <button onclick="openPriceList()">📋 Price List</button>
-        </div>
+
+    <!-- Right Side: Features Button -->
+    <div class="features-dropdown-wrapper" style="position:relative;">
+      <button class="features-btn" onclick="toggleFeaturesMenu()">Features ▼</button>
+      <div id="featuresMenu" class="features-menu">
+        <button onclick="openBudgetCalculator()">🧮 Budget Calculator</button>
+        <button onclick="openPriceList()">📋 Price List</button>
       </div>
     </div>
+    
   </div>
 </div>
