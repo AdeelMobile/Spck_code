@@ -1,6 +1,6 @@
 // ==========================================
 // STORE LOGIC & SECTION LOADER (Supabase Data)
-// UPDATE: 2026-11-15 (Brand Filters Added)
+// UPDATE: 2026-11-15 (Features Dropdown Added)
 // ==========================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -35,10 +35,12 @@ function initBannerSlider() {
 }
 
 // --- GLOBAL VARIABLES ---
-let allBrands = [];      // Supabase se active brands
-let currentBrand = 'All'; // Filhal konsa brand selected hai
+let allBrands = [];
+let currentBrand = 'All';
 let currentMinPrice = 0;
 let currentMaxPrice = 9999999;
+let verifyFrontImg = '';
+let verifyBackImg = '';
 
 // --- SUPABASE DATA FETCH & RENDER ---
 async function loadProductsFromSupabase() {
@@ -53,7 +55,6 @@ async function loadProductsFromSupabase() {
   grid.innerHTML = '<p style="text-align:center; color:var(--mute); grid-column: span 2;">Loading products...</p>';
 
   try {
-    // 1. Brands, Models, Variants fetch karo
     const { data: brandsData } = await supabaseClient.from('brands').select('id, brand').eq('is_active', true);
     const { data: models } = await supabaseClient.from('models').select('id, brand_id, model');
     const { data: variants } = await supabaseClient.from('variants').select('*');
@@ -64,11 +65,8 @@ async function loadProductsFromSupabase() {
     }
 
     allBrands = brandsData;
-
-    // 2. Brand Buttons render karo
     renderBrandButtons();
 
-    // 3. Products render karo
     let html = '';
     let count = 0;
 
@@ -98,7 +96,7 @@ async function loadProductsFromSupabase() {
         imageHtml = `<div style="font-size:40px;">📱</div>`; 
       }
 
-      html += `<div class="p-card" data-price="${price}" data-brand="${esc(brandName)}">
+      html += `<div class="p-card" data-price="${price}" data-brand="${esc(brandName)}" onclick="showSpecs(${pData})" style="cursor:pointer;">
         <div class="p-brand">${esc(brandName)}</div>
         <div class="p-img">${imageHtml}</div>
         
@@ -116,12 +114,12 @@ async function loadProductsFromSupabase() {
             </div>
           </div>
 
-          <div class="p-actions">
-            <button class="btn-action" onclick="showMore(${pData})">More ▼</button>
+          <div class="p-actions" style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;" onclick="event.stopPropagation()">
+            <button class="btn-action" style="background: var(--pri2); color: var(--pri); border-color: var(--pri); font-weight: 700;" onclick="showInstallmentPlans(${pData})">📋 Plans</button>
             <button class="btn-action verify-btn" onclick="showVerifyForm(${pData})">Verification</button>
           </div>
           
-          <a class="btn-wa" href="https://wa.me/?text=${msg}" target="_blank">
+          <a class="btn-wa" href="https://wa.me/?text=${msg}" target="_blank" onclick="event.stopPropagation()">
             Order on WhatsApp
           </a>
         </div>
@@ -140,7 +138,7 @@ async function loadProductsFromSupabase() {
   }
 }
 
-// --- BRAND BUTTONS RENDER ---
+// --- BRAND BUTTONS ---
 function renderBrandButtons() {
   const container = document.getElementById('brandFiltersContainer');
   if (!container) return;
@@ -175,7 +173,7 @@ function renderBrandButtons() {
   container.style.cssText = 'max-width:1000px; margin: 0 auto 12px; padding: 0 16px; display: flex; overflow-x: auto; gap: 8px; scrollbar-width: none;';
 }
 
-// --- PRICE FILTER (With Long Press) ---
+// --- FILTERS LOGIC ---
 let filterPressTimer = null;
 let isLongPressActive = false;
 
@@ -204,7 +202,6 @@ function handleFilterClick(min, max, btn) {
   applyFilters();
 }
 
-// --- BRAND FILTER (With Long Press) ---
 function startBrandPress(brandName, btn) {
   isLongPressActive = false;
   filterPressTimer = setTimeout(() => {
@@ -224,7 +221,6 @@ function handleBrandClick(brandName, btn) {
   applyFilters();
 }
 
-// --- APPLY FILTERS (Brand + Price) ---
 function applyFilters() {
   const cards = document.querySelectorAll('.p-card');
   let visibleCount = 0;
@@ -232,7 +228,6 @@ function applyFilters() {
   cards.forEach(c => {
     const price = parseInt(c.getAttribute('data-price')) || 0;
     const brand = c.getAttribute('data-brand');
-
     const priceMatch = price >= currentMinPrice && price <= currentMaxPrice;
     const brandMatch = currentBrand === 'All' || brand === currentBrand;
 
@@ -244,7 +239,6 @@ function applyFilters() {
     }
   });
 
-  // Show no products message
   const grid = document.getElementById('productGrid');
   let noProductsMsg = document.getElementById('noProductsMsg');
   
@@ -319,14 +313,145 @@ function copyFilterLink(url) {
   }
 }
 
-// --- MORE DETAILS POPUP ---
-function showMore(p) {
-  const price = p.price || 0;
-  const advance = price * 0.30;
-  const monthly9 = (price - advance) / 9;
-  const monthly6 = (price - advance) / 6;
+// --- FEATURES DROPDOWN MENU ---
+function toggleFeaturesMenu() {
+  const menu = document.getElementById('featuresMenu');
+  if (menu) menu.classList.toggle('open');
+}
 
-  let specsTableHtml = '<p style="color:var(--mute); font-size:13px;">No specifications available.</p>';
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('featuresMenu');
+  if (menu && !e.target.closest('.features-dropdown-wrapper')) {
+    menu.classList.remove('open');
+  }
+});
+
+// --- BUDGET CALCULATOR POPUP ---
+function openBudgetCalculator() {
+  const menu = document.getElementById('featuresMenu');
+  if (menu) menu.classList.remove('open');
+
+  let html = `
+    <div style="text-align:center; margin-bottom:15px;">
+      <div style="font-size:40px; margin-bottom:10px;">🧮</div>
+      <h3 style="margin:0; color:var(--pri);">Budget Calculator</h3>
+      <p style="color:var(--mute); font-size:12px;">Apna monthly budget daalein, hum aapko sahi phone dikhayenge</p>
+    </div>
+
+    <label>Monthly Installment Budget (Rs)</label>
+    <input id="calc_budget" type="number" placeholder="e.g. 5000" style="margin-bottom:15px;">
+
+    <label>Months</label>
+    <select id="calc_months" style="margin-bottom:15px;">
+      <option value="3">3 Months</option>
+      <option value="6">6 Months</option>
+      <option value="9" selected>9 Months</option>
+    </select>
+
+    <button class="btn" style="width:100%;" onclick="calculateBudget()">Calculate</button>
+    <div id="calc_result" style="margin-top:20px;"></div>
+  `;
+  
+  document.getElementById('modalTitle').innerText = 'Budget Calculator';
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('infoModal').classList.add('open');
+}
+
+function calculateBudget() {
+  const budget = parseFloat(document.getElementById('calc_budget').value);
+  const months = parseInt(document.getElementById('calc_months').value);
+  const resultBox = document.getElementById('calc_result');
+
+  if (!budget || budget <= 0) {
+    resultBox.innerHTML = '<p style="color:var(--bad); text-align:center;">Please enter a valid budget.</p>';
+    return;
+  }
+
+  const estimatedTotal = (budget * months) / 0.7;
+
+  const cards = document.querySelectorAll('.p-card');
+  let matchedProducts = [];
+
+  cards.forEach(c => {
+    const price = parseInt(c.getAttribute('data-price')) || 0;
+    if (price <= estimatedTotal) {
+      const advance = price * 0.30;
+      const monthly = (price - advance) / months;
+      matchedProducts.push({ 
+        name: c.querySelector('.p-name').innerText.split('\n')[0].trim(),
+        price: price,
+        advance: advance,
+        monthly: Math.round(monthly)
+      });
+    }
+  });
+
+  if (matchedProducts.length === 0) {
+    resultBox.innerHTML = `<p style="color:var(--mute); text-align:center; padding:20px;">Is budget mein koi phone nahi mila.</p>`;
+    return;
+  }
+
+  let html = `<h4 style="margin-bottom:10px;">Suitable Phones (${matchedProducts.length})</h4>`;
+  html += `<table style="width:100%; border-collapse: collapse; font-size:12px;">`;
+  html += `<tr style="background:var(--pri); color:#fff;"><th style="padding:8px;">Phone</th><th style="padding:8px;">Total</th><th style="padding:8px;">Advance</th><th style="padding:8px;">Monthly</th></tr>`;
+  
+  matchedProducts.forEach(p => {
+    html += `<tr style="border-bottom:1px solid var(--line);">
+      <td style="padding:8px;">${esc(p.name)}</td>
+      <td style="padding:8px;">${rs(p.price)}</td>
+      <td style="padding:8px;">${rs(p.advance)}</td>
+      <td style="padding:8px; color:var(--pri); font-weight:700;">${rs(p.monthly)}</td>
+    </tr>`;
+  });
+  
+  html += `</table>`;
+  resultBox.innerHTML = html;
+}
+
+// --- PRICE LIST POPUP ---
+function openPriceList() {
+  const menu = document.getElementById('featuresMenu');
+  if (menu) menu.classList.remove('open');
+
+  const cards = document.querySelectorAll('.p-card');
+  let listHtml = '';
+
+  if (cards.length === 0) {
+    listHtml = '<p style="text-align:center; color:var(--mute);">No products available.</p>';
+  } else {
+    listHtml = `<table style="width:100%; border-collapse: collapse; font-size:13px;">
+      <tr style="background:var(--pri); color:#fff;"><th style="padding:8px; text-align:left;">Phone</th><th style="padding:8px; text-align:right;">Price</th></tr>`;
+    
+    cards.forEach(c => {
+      const price = parseInt(c.getAttribute('data-price')) || 0;
+      const name = c.querySelector('.p-name').innerText.split('\n')[0].trim();
+      listHtml += `<tr style="border-bottom:1px solid var(--line);">
+        <td style="padding:8px;">${esc(name)}</td>
+        <td style="padding:8px; text-align:right; color:var(--pri); font-weight:700;">${rs(price)}</td>
+      </tr>`;
+    });
+    
+    listHtml += `</table>`;
+  }
+
+  let html = `
+    <div style="text-align:center; margin-bottom:15px;">
+      <div style="font-size:40px; margin-bottom:10px;">📋</div>
+      <h3 style="margin:0; color:var(--pri);">Full Price List</h3>
+      <p style="color:var(--mute); font-size:12px;">Adeel Mobile - All Products</p>
+    </div>
+    <div style="max-height:400px; overflow-y:auto;">${listHtml}</div>
+    <button class="btn" style="width:100%; margin-top:15px;" onclick="closeModal()">Close</button>
+  `;
+  
+  document.getElementById('modalTitle').innerText = 'Price List';
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('infoModal').classList.add('open');
+}
+
+// --- SPECS POPUP (Product Click) ---
+function showSpecs(p) {
+  let specsTableHtml = '<p style="color:var(--mute); font-size:13px; text-align:center;">No specifications available for this product.</p>';
   
   if (p.specs) {
     let specsObj = p.specs;
@@ -337,8 +462,8 @@ function showMore(p) {
       specsTableHtml = `<table style="width:100%; border-collapse: collapse; font-size:13px; margin-top:10px;">
         ${Object.entries(specsObj).map(([key, value]) => `
           <tr style="border-bottom: 1px solid var(--line);">
-            <td style="padding: 8px 5px; font-weight: 600; color: var(--ink); width: 40%;">${esc(key)}</td>
-            <td style="padding: 8px 5px; color: var(--mute);">${esc(value)}</td>
+            <td style="padding: 10px 5px; font-weight: 600; color: var(--ink); width: 40%;">${esc(key)}</td>
+            <td style="padding: 10px 5px; color: var(--mute);">${esc(value)}</td>
           </tr>
         `).join('')}
       </table>`;
@@ -356,43 +481,90 @@ function showMore(p) {
     <div style="text-align:center; margin-bottom:20px;">
       ${imagePopup}
       <h2 style="margin:0; font-size:20px;">${esc(p.variant)}</h2>
-    </div>
-    
-    <div style="background:var(--bg); padding:15px; border-radius:12px; margin-bottom:20px; border:1px solid var(--line);">
-      <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-        <span style="color:var(--mute);">Total Price:</span>
-        <b>${rs(price)}</b>
-      </div>
-      <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-        <span style="color:var(--mute);">Advance (30%):</span>
-        <b style="color:var(--ok);">${rs(advance)}</b>
-      </div>
-      <hr style="border:0; border-top:1px solid var(--line); margin:10px 0;">
-      <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-        <span style="color:var(--mute);">9 Months Plan:</span>
-        <b style="color:var(--pri);">${rs(monthly9)} / mo</b>
-      </div>
-      <div style="display:flex; justify-content:space-between;">
-        <span style="color:var(--mute);">6 Months Plan:</span>
-        <b style="color:var(--pri);">${rs(monthly6)} / mo</b>
-      </div>
+      <p style="color:var(--pri); font-size:14px; font-weight:600; margin-top:5px;">Rs ${(p.price||0).toLocaleString('en-PK')}</p>
     </div>
 
     <div>
-      <h4 style="margin-bottom:8px; color: var(--ink);">Specifications</h4>
+      <h4 style="margin-bottom:8px; color: var(--ink); border-bottom:1px solid var(--line); padding-bottom:5px;">📱 Specifications</h4>
       ${specsTableHtml}
     </div>
 
     <button class="btn" style="width:100%; margin-top:20px;" onclick="closeModal()">Close</button>
   `;
   
-  document.getElementById('modalTitle').innerText = 'Product Details';
+  document.getElementById('modalTitle').innerText = 'Product Specifications';
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('infoModal').classList.add('open');
+}
+
+// --- INSTALLMENT PLANS POPUP ---
+function showInstallmentPlans(p) {
+  const price = p.price || 0;
+  const advance = price * 0.30;
+  const remaining = price - advance;
+
+  const monthly3 = Math.round(remaining / 3);
+  const monthly6 = Math.round(remaining / 6);
+  const monthly9 = Math.round(remaining / 9);
+
+  let imagePopup = '';
+  if (p.image_link) {
+    imagePopup = `<img src="${p.image_link}" style="max-height:120px; object-fit:contain; margin-bottom:10px;">`;
+  } else {
+    imagePopup = `<div style="font-size:50px; margin-bottom:10px;">📱</div>`;
+  }
+
+  let html = `
+    <div style="text-align:center; margin-bottom:15px;">
+      ${imagePopup}
+      <h2 style="margin:0; font-size:18px;">${esc(p.variant)}</h2>
+      <p style="color:var(--mute); font-size:13px; margin-top:5px;">Total Price: <b>${rs(price)}</b></p>
+    </div>
+
+    <div style="background:#f8fafc; padding:15px; border-radius:12px; margin-bottom:15px; border:1px solid var(--line);">
+      <h4 style="margin:0 0 10px 0; text-align:center; color:var(--pri);">📊 Installment Plans</h4>
+      <table style="width:100%; border-collapse: collapse; font-size:13px; background:#fff; border-radius:8px; overflow:hidden;">
+        <thead>
+          <tr style="background:var(--pri); color:#fff;">
+            <th style="padding:10px 5px; text-align:left; font-size:12px;">Plan</th>
+            <th style="padding:10px 5px; text-align:center; font-size:12px;">Advance</th>
+            <th style="padding:10px 5px; text-align:right; font-size:12px;">Monthly</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line);">
+            <td style="padding:12px 5px; font-weight:700;">3 Months</td>
+            <td style="padding:12px 5px; text-align:center; color:var(--ok); font-weight:600;">${rs(advance)}</td>
+            <td style="padding:12px 5px; text-align:right; color:var(--pri); font-weight:700;">${rs(monthly3)}/mo</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line);">
+            <td style="padding:12px 5px; font-weight:700;">6 Months</td>
+            <td style="padding:12px 5px; text-align:center; color:var(--ok); font-weight:600;">${rs(advance)}</td>
+            <td style="padding:12px 5px; text-align:right; color:var(--pri); font-weight:700;">${rs(monthly6)}/mo</td>
+          </tr>
+          <tr>
+            <td style="padding:12px 5px; font-weight:700;">9 Months</td>
+            <td style="padding:12px 5px; text-align:center; color:var(--ok); font-weight:600;">${rs(advance)}</td>
+            <td style="padding:12px 5px; text-align:right; color:var(--pri); font-weight:700;">${rs(monthly9)}/mo</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="font-size:11px; color:var(--mute); text-align:center; margin:10px 0 0;">Advance amount same hai, bas monthly plan apni sahulat ke mutabiq chunein.</p>
+    </div>
+
+    <button class="btn" style="width:100%; margin-top:20px;" onclick="closeModal()">Close</button>
+  `;
+  
+  document.getElementById('modalTitle').innerText = 'Installment Plans';
   document.getElementById('modalBody').innerHTML = html;
   document.getElementById('infoModal').classList.add('open');
 }
 
 // --- VERIFICATION FORM POPUP ---
 function showVerifyForm(p) {
+  verifyFrontImg = '';
+  verifyBackImg = '';
+
   let html = `
     <div style="text-align:center; margin-bottom:15px;">
       <h3 style="margin:0; color:var(--pri);">Verification Form</h3>
@@ -405,11 +577,22 @@ function showVerifyForm(p) {
     <label>WhatsApp Number *</label>
     <input id="v_phone" placeholder="03xx-xxxxxxx">
 
-    <label>ID Card Front (URL)</label>
-    <input id="v_front" placeholder="https://...">
+    <label>CNIC Number</label>
+    <input id="v_cnic" placeholder="12345-1234567-1">
 
-    <label>ID Card Back (URL)</label>
-    <input id="v_back" placeholder="https://...">
+    <label style="margin-top:10px; display:block;">ID Card Front Image</label>
+    <div class="img-upload-box" style="border: 2px dashed var(--line); padding: 15px; text-align: center; border-radius: 10px; background: var(--bg); margin-bottom: 15px; position: relative;">
+      <span style="color:var(--pri); font-weight:600; font-size:14px;">📷 Click to Upload Front Image</span>
+      <input type="file" accept="image/*" onchange="resizeAndPreview(this, 'front')" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+    </div>
+    <img id="preview_front" style="width: 100%; height: 120px; object-fit: contain; background: #fff; border: 1px solid var(--line); border-radius: 8px; margin-top: 10px; display: none;">
+
+    <label style="margin-top:10px; display:block;">ID Card Back Image</label>
+    <div class="img-upload-box" style="border: 2px dashed var(--line); padding: 15px; text-align: center; border-radius: 10px; background: var(--bg); margin-bottom: 15px; position: relative;">
+      <span style="color:var(--pri); font-weight:600; font-size:14px;">📷 Click to Upload Back Image</span>
+      <input type="file" accept="image/*" onchange="resizeAndPreview(this, 'back')" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+    </div>
+    <img id="preview_back" style="width: 100%; height: 120px; object-fit: contain; background: #fff; border: 1px solid var(--line); border-radius: 8px; margin-top: 10px; display: none;">
 
     <label>Have you taken any online loan?</label>
     <select id="v_loan">
@@ -428,11 +611,49 @@ function showVerifyForm(p) {
   document.getElementById('infoModal').classList.add('open');
 }
 
-function submitVerification(productName) {
+function resizeAndPreview(input, type) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      const maxSize = 600;
+      if (width > maxSize) {
+        height = Math.round((height * maxSize) / width);
+        width = maxSize;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      const base64Image = canvas.toDataURL('image/jpeg', 0.7);
+      
+      if(type === 'front') verifyFrontImg = base64Image;
+      if(type === 'back') verifyBackImg = base64Image;
+
+      const previewId = type === 'front' ? 'preview_front' : 'preview_back';
+      const previewEl = document.getElementById(previewId);
+      if(previewEl) {
+        previewEl.src = base64Image;
+        previewEl.style.display = 'block';
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitVerification(productName) {
   const name = document.getElementById('v_name').value.trim();
   const phone = document.getElementById('v_phone').value.trim();
-  const front = document.getElementById('v_front').value.trim();
-  const back = document.getElementById('v_back').value.trim();
+  const cnic = document.getElementById('v_cnic').value.trim();
   const loan = document.getElementById('v_loan').value;
 
   if(!name || !phone) {
@@ -440,22 +661,34 @@ function submitVerification(productName) {
     return;
   }
 
-  D.verifications.push({
-    id: uid(),
-    userId: 'guest',
-    cname: name,
-    cphone: phone,
-    frontImg: front,
-    backImg: back,
-    loan: loan,
-    product: productName,
-    status: 'Pending',
-    date: Date.now()
-  });
+  const urlParams = new URLSearchParams(window.location.search);
+  const agentUsername = urlParams.get('user') || 'guest';
 
-  save(); 
-  closeModal();
-  alert('Verification request submitted successfully! Our team will contact you.');
+  try {
+    const { error } = await supabaseClient.from('verifications').insert([{
+      name: name,
+      phone: phone,
+      cnic: cnic,
+      front_img: verifyFrontImg,
+      back_img: verifyBackImg,
+      loan_taken: loan,
+      product: productName,
+      status: 'Pending',
+      added_by: agentUsername
+    }]);
+
+    if (error) throw error;
+
+    closeModal();
+    alert('Verification request submitted successfully! Our team will contact you.');
+    
+    verifyFrontImg = '';
+    verifyBackImg = '';
+
+  } catch (err) {
+    alert('Error submitting verification: ' + err.message);
+    console.error(err);
+  }
 }
 
 function closeModal() {

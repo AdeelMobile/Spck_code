@@ -14,12 +14,54 @@ body { background: #f8fafc; margin: 0; font-family: 'Inter', var(--fb); }
 }
 .store-header h1 { font-size: 22px; margin: 0 0 4px 0; color: #000000; font-family: 'Inter', var(--fh); font-weight: 700; }
 .store-header p { font-size: 12px; margin: 0; color: #64748b; font-family: 'Inter', var(--fb); }
-.menu-btn {
-  position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
-  background: #f8fafc; border: 1px solid #e2e8f0; color: #000000;
-  font-size: 20px; width: 38px; height: 38px; border-radius: 8px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+
+/* Features Dropdown Styles */
+.features-btn {
+  background: var(--pri2, #eff6ff);
+  color: var(--pri, #2563eb);
+  border: 1px solid var(--pri, #2563eb);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
+.features-btn:hover { background: var(--pri, #2563eb); color: #fff; }
+
+.features-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 110%;
+  background: #fff;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  z-index: 1000;
+  width: 180px;
+  overflow: hidden;
+}
+.features-menu.open { display: block; }
+.features-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 12px 15px;
+  font-size: 13px;
+  color: var(--ink, #0f172a);
+  font-weight: 600;
+  border-bottom: 1px solid var(--line, #e2e8f0);
+  cursor: pointer;
+  transition: 0.2s;
+}
+.features-menu button:last-child { border-bottom: none; }
+.features-menu button:hover { background: var(--bg, #f8fafc); color: var(--pri, #2563eb); }
 
 /* Banner Slider */
 .banner-slider { max-width: 1000px; margin: 0 auto 16px; padding: 0 16px; overflow: hidden; border-radius: 16px; }
@@ -49,10 +91,9 @@ body { background: #f8fafc; margin: 0; font-family: 'Inter', var(--fb); }
 
 .p-brand { font-size: 10px; color: var(--pri); font-weight: 700; text-transform: uppercase; padding: 10px 10px 0; }
 
-/* IMAGE FIX: Background changed to White */
 .p-img {
   height: 160px; 
-  background: #ffffff; /* WHITE BACKGROUND */
+  background: #ffffff; 
   display: flex; 
   align-items: center; 
   justify-content: center; 
