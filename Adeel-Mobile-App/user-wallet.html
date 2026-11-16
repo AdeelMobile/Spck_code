@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Wallet - Adeel Mobile</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+
+function loadMyWallet(){
+  let html = `
+  <div class="top"><h2>My Wallet</h2></div>
+  
+  <div class="card" style="text-align:center; padding:40px;">
+    <div style="font-size:40px; margin-bottom:10px;">💰</div>
+    <h3 style="color:var(--pri); font-size:24px;">Rs 0</h3>
+    <p style="color:var(--mute); margin-top:5px;">Current Balance</p>
+  </div>
+  `;
+
+  renderApp('My Wallet', html);
+}
+
+loadMyWallet();
+</script>
+</body>
+</html>

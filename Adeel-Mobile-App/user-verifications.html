@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Verifications - Adeel Mobile</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+
+function loadMyVerifications(){
+  let html = `<div class="top"><h2>My Verifications</h2></div>`;
+  
+  html += `<div class="card" style="text-align:center; padding:40px;">
+    <div style="font-size:40px; margin-bottom:10px;">📭</div>
+    <p style="color:var(--mute);">Aapki koi verification abhi pending nahi hai.</p>
+  </div>`;
+
+  renderApp('My Verifications', html);
+}
+
+loadMyVerifications();
+</script>
+</body>
+</html>

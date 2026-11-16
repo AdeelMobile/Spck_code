@@ -49,13 +49,14 @@ function renderApp(title, contentHTML) {
   
   const A = me.role === 'admin';
 
+  // Admin Menu (Saari categories aur links)
   const navAdmin = [
     { id: 'installment', cat: 'Installment', icon: ICONS.installment, items: [
       ['users.html', 'Users', ICONS.users],
-      ['verifications.html', 'Verifications', ICONS.verify],
-      ['customers.html', 'Customers', ICONS.customers],
+      ['admin-verifications.html', 'Verifications', ICONS.verify], 
+      ['admin-customers.html', 'Customers', ICONS.customers],        
       ['users.html', 'Performance', ICONS.performance],
-      ['rules.html', 'Rules', ICONS.rules] // <-- Yahan rules.html kar dia
+      ['rules.html', 'Rules', ICONS.rules]
     ]},
     { id: 'pos', cat: 'POS', icon: ICONS.pos, items: [
       ['cash-in-hand.html', 'Cash in hand', ICONS.cash],
@@ -88,22 +89,22 @@ function renderApp(title, contentHTML) {
     ]}
   ];
 
+  // USER Menu (Sirf 5 Items)
   const navUser = [
-    ['dashboard.html', 'Dashboard', ICONS.dashboard],
-    ['my-store.html', 'My Store', ICONS.website],
-    ['verifications.html', 'Verifications', ICONS.verify],
-    ['my-wallet.html', 'My Wallet', ICONS.wallet],
-    ['new-sale.html', 'My Sales', ICONS.sale],
-    ['my-customers.html', 'My Customers', ICONS.customers]
+    ['user-dashboard.html', 'Dashboard', ICONS.dashboard],
+    ['user-verifications.html', 'My Verifications', ICONS.verify],
+    ['user-customers.html', 'My Customers', ICONS.customers],
+    ['user-wallet.html', 'My Wallet', ICONS.wallet],
+    ['settings.html', 'Settings', ICONS.settings]
   ];
   
   const path = window.location.pathname;
-  const page = path.substring(path.lastIndexOf('/') + 1) || 'dashboard.html';
+  const page = path.substring(path.lastIndexOf('/') + 1) || 'admin-dashboard.html';
 
   let navHtml = '';
   
   if(A) {
-    navHtml = `<a href="dashboard.html" class="nav ${page==='dashboard.html'?'on':''}" style="margin-bottom:10px;"><span>${ICONS.dashboard}</span>Dashboard</a>`;
+    navHtml = `<a href="admin-dashboard.html" class="nav ${page==='admin-dashboard.html'?'on':''}" style="margin-bottom:10px;"><span>${ICONS.dashboard}</span>Dashboard</a>`;
     
     navHtml += navAdmin.map(group => {
       const isOpen = openCategories[group.id];
@@ -135,7 +136,7 @@ function renderApp(title, contentHTML) {
     }).join('');
   } else {
     navHtml = navUser.map(n => `
-      <a href="${n[0]}" class="nav ${page===n[0]?'on':''}" style="gap:10px;">
+      <a href="${n[0]}" class="nav ${page===n[0]?'on':''}" style="gap:10px; margin-bottom: 8px;">
         <span style="display:flex; align-items:center; justify-content:center;">${n[2]}</span>${n[1]}
       </a>
     `).join('');

@@ -27,9 +27,9 @@
 // Agar pehle se login hai toh Role ke hisaab se bhejo
 if(me) {
   if (me.role === 'admin') {
-    window.location.href='dashboard.html';
+    window.location.href='admin-dashboard.html';
   } else {
-    window.location.href='my-dashboard.html'; 
+    window.location.href='user-dashboard.html'; 
   }
 }
 
@@ -99,9 +99,9 @@ async function doLogin(){
     
     // Role ke hisaab se page change karo
     if (userRole === 'admin') {
-      window.location.href = 'dashboard.html';
+      window.location.href = 'admin-dashboard.html';
     } else {
-      window.location.href = 'my-dashboard.html'; 
+      window.location.href = 'user-dashboard.html'; 
     }
 
   } catch (err) {

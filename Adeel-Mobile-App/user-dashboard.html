@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Dashboard - Adeel Mobile</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="root"></div>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+if(!me) window.location.href='index.html';
+
+function loadDashboard(){
+  let html = `
+  <div class="top"><h2>Welcome, ${esc(me.name)}</h2></div>
+  
+  <div class="grid">
+    <div class="stat"><small>My Sales</small><b>0</b></div>
+    <div class="stat"><small>My Verifications</small><b>0</b></div>
+    <div class="stat"><small>Wallet Balance</small><b style="color:var(--ok)">Rs 0</b></div>
+    <div class="stat"><small>Target</small><b>${rs(me.target || 0)}</b></div>
+  </div>
+
+  <div class="card" style="text-align:center; padding:40px;">
+    <div style="font-size:40px; margin-bottom:10px;">👋</div>
+    <h3>Welcome to your panel</h3>
+    <p style="color:var(--mute); font-size:14px;">Yahan se aap apni sales, customers aur verifications dekh sakte hain.</p>
+  </div>
+  `;
+
+  renderApp('My Dashboard', html);
+}
+
+loadDashboard();
+</script>
+</body>
+</html>
