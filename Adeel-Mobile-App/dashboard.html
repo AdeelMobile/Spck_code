@@ -52,6 +52,11 @@
 // Agar login nahi hai to direct login page pe bhej dega
 if(!me) window.location.href='index.html';
 
+// NAYA: Security Check (Agar user admin nahi hai to wapas bhej do)
+if(me.role !== 'admin') {
+  window.location.href = 'my-dashboard.html';
+}
+
 function loadDashboard(){
   const A = me.role==='admin';
   const S = A ? D.sales : D.sales.filter(s=>s.userId===me.id);
