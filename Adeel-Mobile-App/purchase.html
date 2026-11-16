@@ -4,219 +4,557 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Purchase - Adeel Mobile</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="css/style.css">
 <style>
-  /* Top Buttons (Tabs) */
-  .pur-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 15px; scrollbar-width: none; }
-  .pur-tabs::-webkit-scrollbar { display: none; }
-  .pur-tab-btn {
-    background: #fff; border: 1px solid var(--line); color: var(--ink);
-    padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;
-    white-space: nowrap; cursor: pointer; transition: 0.2s;
-  }
-  .pur-tab-btn:hover { border-color: var(--pri); }
-  .pur-tab-btn.active { background: var(--pri); color: #fff; border-color: var(--pri); }
+  .p-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 15px; scrollbar-width: none; }
+  .p-tabs::-webkit-scrollbar { display: none; }
+  .p-tab-btn { background: #fff; border: 1px solid var(--line); color: var(--ink); padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: 0.2s; }
+  .p-tab-btn.active { background: var(--pri); color: #fff; border-color: var(--pri); }
 
-  /* Panels */
-  .pur-panel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
-  .pur-panel.active { display: block; }
+  .p-panel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+  .p-panel.active { display: block; }
+  .p-panel h3 { font-size: 16px; color: var(--ink); margin-bottom: 15px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
   
-  .pur-panel h3 { font-size: 16px; color: var(--ink); margin-bottom: 15px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+  .table-container { width: 100%; overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+  .data-table { width: 100%; border-collapse: collapse; min-width: 500px; }
+  .data-table th { background: #f8fafc; color: var(--mute); font-size: 12px; font-weight: 700; text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--line); }
+  .data-table td { padding: 10px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--ink); }
+  .data-table tr:last-child td { border-bottom: none; }
+  
+  .search-result-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .search-result-item:hover { background: var(--bg); }
+  .search-result-item:last-child { border-bottom: none; }
+  .search-result-info b { display: block; font-size: 14px; }
+  .search-result-info small { color: var(--mute); font-size: 12px; }
+  .search-result-price { font-weight: 700; color: var(--pri); }
 
-  /* Table */
-  .tw { margin-top: 10px; }
+  .modal-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; scrollbar-width: none; }
+  .modal-tabs::-webkit-scrollbar { display: none; }
+
+  .custom-modal { position: fixed; inset: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(3px); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 16px; }
+  .custom-modal.open { display: flex; }
+  .custom-modal-content { background: #fff; border-radius: 20px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; animation: slideUp 0.3s ease-out; display: flex; flex-direction: column; }
+  @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .custom-modal-header { padding: 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+  .custom-modal-body { padding: 20px; overflow-y: auto; }
+  .custom-modal-close { background: var(--bg); border: 0; width: 32px; height: 32px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+  .btn-input-like { width:100%; text-align:left; background:var(--card); color:var(--ink); border:1px solid var(--line); padding: 12px 14px; border-radius:10px; cursor:pointer; font-size: 14px; margin-bottom: 10px;}
+  .btn-input-like:active { background: var(--bg); }
+
+  /* IMEI List Styling */
+  .imei-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  .imei-item { display: flex; justify-content: space-between; align-items: center; background: var(--bg); padding: 10px; border-radius: 8px; border: 1px solid var(--line); }
+  .imei-item span { font-family: monospace; font-size: 14px; font-weight: 600; }
+  .imei-item button { background: #fee2e2; color: #ef4444; border: none; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  
+  .scan-row { display: flex; gap: 8px; }
+  .scan-row input { flex: 1; }
 </style>
 </head>
 <body>
 <div id="root"></div>
+
+<!-- Custom Modal (Model Select karne ke liye) -->
+<div id="customModal" class="custom-modal">
+  <div class="custom-modal-content">
+    <div class="custom-modal-header">
+      <h2 id="customModalTitle" style="margin:0; font-size:18px;">Select Product</h2>
+      <button class="custom-modal-close" onclick="closeCustomModal()">×</button>
+    </div>
+    <div class="custom-modal-body" id="customModalBody"></div>
+  </div>
+</div>
+
+<!-- Supplier Modal -->
+<div id="supplierModal" class="custom-modal">
+  <div class="custom-modal-content">
+    <div class="custom-modal-header">
+      <h2 id="supplierModalTitle" style="margin:0; font-size:18px;">Select Supplier</h2>
+      <button class="custom-modal-close" onclick="closeSupplierModal()">×</button>
+    </div>
+    <div class="custom-modal-body" id="supplierModalBody"></div>
+  </div>
+</div>
+
+<!-- Add Supplier Modal -->
+<div id="addSupplierModal" class="custom-modal">
+  <div class="custom-modal-content">
+    <div class="custom-modal-header">
+      <h2 style="margin:0; font-size:18px;">Add New Supplier</h2>
+      <button class="custom-modal-close" onclick="closeAddSupplierModal()">×</button>
+    </div>
+    <div class="custom-modal-body">
+      <label>Supplier Name *</label>
+      <input id="s_name" placeholder="Enter supplier name">
+      <label>Contact Number</label>
+      <input id="s_contact" placeholder="03xx-xxxxxxx">
+      
+      <button class="btn" style="width:100%; margin-top:15px;" onclick="saveSupplier()">Save Supplier</button>
+    </div>
+  </div>
+</div>
+
 <script src="js/app.js"></script>
 <script src="js/menu.js"></script>
 <script>
 if(!me) window.location.href='index.html';
 if(me.role!=='admin') window.location.href='dashboard.html';
 
-let currentTab = 'purchase'; // Default tab
-let currentBrands = [...new Set(D.products.map(p => p.brand))];
+let currentTab = 'new';
+let allBrands = [];
+let allModels = [];
+let allVariants = [];
+let allPurchases = [];
+let allSuppliers = [];
 
-function loadPurchase() {
+let selectedVariantId = '';
+let selectedVariantName = '';
+let selectedSupplierName = '';
+let currentImeis = []; // Array to hold IMEIs
+
+async function fetchData() {
+  try {
+    const { data: brands } = await supabaseClient.from('brands').select('id, brand');
+    const { data: models } = await supabaseClient.from('models').select('id, brand_id, model');
+    const { data: variants } = await supabaseClient.from('variants').select('*');
+    const { data: purchases } = await supabaseClient.from('purchases').select('*').order('created_at', { ascending: false });
+    const { data: suppliers } = await supabaseClient.from('suppliers').select('*').order('name');
+    
+    allBrands = brands || [];
+    allModels = models || [];
+    allVariants = variants || [];
+    allPurchases = purchases || [];
+    allSuppliers = suppliers || [];
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function loadPurchasePage(){
+  await fetchData();
+  
   let html = `
   <div class="top"><h2>Purchase Management</h2></div>
   
-  <!-- Top Buttons (Tabs) -->
-  <div class="pur-tabs">
-    <button class="pur-tab-btn ${currentTab==='purchase'?'active':''}" onclick="switchTab('purchase')">📥 New Purchase</button>
-    <button class="pur-tab-btn ${currentTab==='brand'?'active':''}" onclick="switchTab('brand')">➕ Add Brand / Model</button>
-    <button class="pur-tab-btn ${currentTab==='supplier'?'active':''}" onclick="switchTab('supplier')">🚚 Purchase Reports</button>
-    <button class="pur-tab-btn ${currentTab==='stock'?'active':''}" onclick="switchTab('stock')">📦 Stock Report</button>
+  <div class="p-tabs">
+    <button class="p-tab-btn ${currentTab==='new'?'active':''}" onclick="switchTab('new')">➕ New Purchase</button>
+    <button class="p-tab-btn ${currentTab==='history'?'active':''}" onclick="switchTab('history')">📋 Purchase History</button>
   </div>
 
-  <!-- 1. New Purchase Panel -->
-  <div class="pur-panel ${currentTab==='purchase'?'active':''}">
-    <h3>New Purchase</h3>
-    <label>Phone</label>
-    <select id="p_phone">
-      <option value="">-- Select Phone --</option>
-      ${D.products.map(p => `<option value="${p.id}">${esc(p.brand)} ${esc(p.name)} (${esc(p.variant || '')}) – ${rs(p.price)} (Stock: ${p.stock})</option>`).join('')}
-    </select>
+  <div class="p-panel ${currentTab==='new'?'active':''}">
+    <h3>Add New Purchase</h3>
     
-    <label style="margin-top:15px;">Supplier Details</label>
-    <div class="row">
-      <div><input id="p_sname" placeholder="Supplier Name"></div>
-      <div><input id="p_sphone" placeholder="Supplier Phone"></div>
-    </div>
+    <!-- 1. Date Upar -->
+    <label>Purchase Date</label>
+    <input id="p_date" type="datetime-local" value="${getCurrentDateTime()}" style="margin-bottom:10px;">
 
-    <div class="row">
-      <div><label>Purchase Price (Rs)</label><input id="p_price" type="number" value="0"></div>
-      <div><label>Paid Amount (Rs)</label><input id="p_paid" type="number" value="0"></div>
+    <!-- 2. IMEI Scan / Manual -->
+    <label>IMEI Numbers</label>
+    <div class="scan-row" style="margin-bottom:10px;">
+      <input id="imei_input" placeholder="Enter or scan IMEI" onkeydown="if(event.key === 'Enter') addImei()">
+      <button class="btn" onclick="addImei()">➕ Add</button>
+      <button class="btn sec" onclick="scanImei()">📷 Scan</button>
     </div>
+    
+    <!-- IMEI List -->
+    <div id="imeiListContainer" class="imei-list"></div>
 
-    <button class="btn" style="margin-top:15px; width:100%" onclick="savePurchase()">Save Purchase</button>
+    <hr style="border:0; border-top:1px dashed var(--line); margin: 15px 0;">
+
+    <!-- 3. Model Selection -->
+    <label>Select Model *</label>
+    <button class="btn-input-like" onclick="openModelSelector()">
+      ${selectedVariantName ? esc(selectedVariantName) : '-- Select Model --'}
+    </button>
+    
+    <!-- 4. Supplier -->
+    <label>Supplier Name</label>
+    <button class="btn-input-like" onclick="openSupplierSelector()">
+      ${selectedSupplierName ? esc(selectedSupplierName) : '-- Select Supplier --'}
+    </button>
+    
+    <!-- 5. Quantity & Cost -->
+    <label>Quantity *</label>
+    <input id="p_qty" type="number" value="1" min="1" style="margin-bottom:10px;">
+    
+    <label>Cost Price (Per Unit) *</label>
+    <input id="p_cost" type="number" placeholder="0">
+
+    <button class="btn" style="margin-top:15px; width:100%;" onclick="savePurchase()">Save Purchase</button>
   </div>
 
-  <!-- 2. Add Brand / Model Panel -->
-  <div class="pur-panel ${currentTab==='brand'?'active':''}">
-    <h3>Add Brand / Model</h3>
-    
-    <label>Add New Brand</label>
-    <div style="display:flex; gap:10px; margin-bottom:10px;">
-      <input id="nb_name" placeholder="e.g. Samsung">
-      <button class="btn" onclick="addBrand()">Add</button>
+  <div class="p-panel ${currentTab==='history'?'active':''}">
+    <h3>Purchase History</h3>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Cost Price</th>
+            <th>Supplier</th>
+            <th>IMEIs</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${allPurchases.map(p => {
+            const variant = allVariants.find(v => v.id === p.variant_id);
+            const model = allModels.find(m => m.id === variant?.model_id);
+            const brand = allBrands.find(b => b.id === model?.brand_id);
+            const pName = (brand ? brand.brand : '') + ' ' + (model ? model.model : 'Unknown') + ' (' + (variant ? variant.variant : '') + ')';
+            
+            return `<tr>
+              <td>${new Date(p.purchase_date).toLocaleString('en-GB')}</td>
+              <td>${esc(pName)}</td>
+              <td>${p.quantity}</td>
+              <td>${rs(p.cost_price)}</td>
+              <td>${esc(p.supplier_name || '-')}</td>
+              <td><small>${p.imei_numbers ? esc(p.imei_numbers).replace(/,/g, '<br>') : '-'}</small></td>
+            </tr>`;
+          }).join('') || '<tr><td colspan="6" style="text-align:center; color:var(--mute);">No purchases yet.</td></tr>'}
+        </tbody>
+      </table>
     </div>
-    
-    <label>Add New Model</label>
-    <select id="nm_brand">
-      ${currentBrands.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('') || '<option value="">No brands added</option>'}
-    </select>
-    
-    <div class="row">
-      <div><label>Model Name</label><input id="nm_name" placeholder="e.g. A15"></div>
-      <div><label>Variant</label><input id="nm_variant" placeholder="e.g. 8GB/128GB"></div>
-    </div>
-    
-    <button class="btn" style="margin-top:15px; width:100%" onclick="addModel()">Save Model</button>
-  </div>
-
-  <!-- 3. Purchase Reports with Suppliers Panel -->
-  <div class="pur-panel ${currentTab==='supplier'?'active':''}">
-    <h3>Purchase Reports (with Suppliers)</h3>
-    <div class="tw"><table>
-      <tr>
-        <th>Date</th>
-        <th>Phone Model</th>
-        <th>Supplier</th>
-        <th>Total Price</th>
-        <th>Paid</th>
-        <th>Remaining</th>
-      </tr>
-      ${(D.purchases || []).slice().reverse().map(p => `
-        <tr>
-          <td>${new Date(p.date).toLocaleDateString('en-GB')}</td>
-          <td>${esc(p.pname)}</td>
-          <td>${esc(p.sname)}<br><small style="color:var(--mute);">${esc(p.sphone)}</small></td>
-          <td>${rs(p.total)}</td>
-          <td>${rs(p.paid)}</td>
-          <td style="color:var(--bad); font-weight:bold;">${rs(p.remaining)}</td>
-        </tr>
-      `).join('') || '<tr><td colspan="6" style="text-align:center; color:var(--mute);">No purchases found.</td></tr>'}
-    </table></div>
-  </div>
-
-  <!-- 4. Stock Report Panel -->
-  <div class="pur-panel ${currentTab==='stock'?'active':''}">
-    <h3>Stock Report (All Models)</h3>
-    <div class="tw"><table>
-      <tr>
-        <th>Brand</th>
-        <th>Model</th>
-        <th>Variant</th>
-        <th>Purchase Price</th>
-        <th>Stock Qty</th>
-      </tr>
-      ${D.products.map(p => `
-        <tr>
-          <td>${esc(p.brand)}</td>
-          <td>${esc(p.name)}</td>
-          <td>${esc(p.variant || '-')}</td>
-          <td>${rs(p.price)}</td>
-          <td style="color:${p.stock > 0 ? 'var(--ok)' : 'var(--bad)'}; font-weight:bold;">${p.stock}</td>
-        </tr>
-      `).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--mute);">No products found.</td></tr>'}
-    </table></div>
   </div>
   `;
 
   renderApp('Purchase', html);
+  renderImeiList();
+}
+
+function getCurrentDateTime() {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  return now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
 }
 
 function switchTab(tab) {
   currentTab = tab;
-  loadPurchase();
+  loadPurchasePage();
 }
 
-function savePurchase() {
-  const pid = v('p_phone');
-  const p = D.products.find(x => x.id === pid);
-  if(!p) return alert('Please select a phone');
-
-  const sname = v('p_sname').trim();
-  const sphone = v('p_sphone').trim();
-  const paid = +v('p_paid') || 0;
+// --- IMEI FUNCTIONS ---
+function renderImeiList() {
+  const container = document.getElementById('imeiListContainer');
+  if (!container) return;
   
-  if(!sname) return alert('Please enter supplier name');
+  if (currentImeis.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
 
-  D.purchases.push({
-    id: uid(), userId: me.id, productId: p.id, pname: p.brand + ' ' + p.name,
-    sname: sname, sphone: sphone, price: p.price, paid: paid, total: p.price, remaining: p.price - paid, date: Date.now()
-  });
+  container.innerHTML = currentImeis.map((imei, index) => `
+    <div class="imei-item">
+      <span>IMEI ${index + 1}: ${esc(imei)}</span>
+      <button onclick="removeImei(${index})">Remove</button>
+    </div>
+  `).join('');
+}
 
-  p.stock++; // Stock barhaya
+function addImei() {
+  const imeiInput = document.getElementById('imei_input');
+  const imei = imeiInput.value.trim();
+  
+  if (!imei) return;
+  
+  // Simple validation: IMEI should be at least 14 digits
+  if (imei.length < 14) {
+    alert('IMEI number is too short. Please enter a valid IMEI (15 digits).');
+    return;
+  }
 
-  if(paid > 0) {
-    D.cashbook.push({
-      id: uid(), date: Date.now(), type: 'Out', amount: paid,
-      description: `Purchase Paid - ${sname} (${p.brand} ${p.name})`, refId: p.id
+  if (currentImeis.includes(imei)) {
+    alert('This IMEI is already added.');
+    imeiInput.value = '';
+    return;
+  }
+
+  currentImeis.push(imei);
+  imeiInput.value = '';
+  renderImeiList();
+}
+
+function removeImei(index) {
+  currentImeis.splice(index, 1);
+  renderImeiList();
+}
+
+// Fake Scan Function (BarcodeDetector API)
+async function scanImei() {
+  if (!('BarcodeDetector' in window)) {
+    alert('Aapka browser scanner support nahi karta. Meharbani farma kar manually enter karein.');
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    video.setAttribute('playsinline', true);
+    video.play();
+
+    const videoContainer = document.createElement('div');
+    videoContainer.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.innerText = 'Close Scanner';
+    closeBtn.style.cssText = 'margin-top:20px; padding:10px 20px; font-size:16px; background:red; color:#fff; border:none; border-radius:8px;';
+    
+    videoContainer.appendChild(video);
+    videoContainer.appendChild(closeBtn);
+    document.body.appendChild(videoContainer);
+
+    const barcodeDetector = new BarcodeDetector({ formats: ['code_128', 'ean_13'] });
+
+    const scanInterval = setInterval(async () => {
+      try {
+        const barcodes = await barcodeDetector.detect(video);
+        if (barcodes.length > 0) {
+          const rawValue = barcodes[0].rawValue;
+          clearInterval(scanInterval);
+          stream.getTracks().forEach(track => track.stop());
+          videoContainer.remove();
+
+          // IMEI ko input box mein daal do aur add kar do
+          const imeiInput = document.getElementById('imei_input');
+          imeiInput.value = rawValue;
+          addImei();
+
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 500);
+
+    closeBtn.onclick = () => {
+      clearInterval(scanInterval);
+      stream.getTracks().forEach(track => track.stop());
+      videoContainer.remove();
+    };
+
+  } catch (err) {
+    alert('Camera access denied or unavailable. Please enter manually.');
+    console.error(err);
+  }
+}
+
+
+// --- MODEL SELECTOR ---
+function openModelSelector() {
+  document.getElementById('customModalTitle').innerText = 'Select Product';
+  document.getElementById('customModal').classList.add('open');
+  
+  let bodyHtml = `
+    <div class="modal-tabs" id="modalBrandTabs"></div>
+    <input type="text" id="modalSearch" class="stock-search" placeholder="Search model..." oninput="filterModalList()" style="margin-bottom:10px;">
+    <div id="modalListContainer" style="max-height: 400px; overflow-y: auto;"></div>
+  `;
+  document.getElementById('customModalBody').innerHTML = bodyHtml;
+  
+  renderBrandTabs();
+  renderModalList('All', '');
+}
+
+function closeCustomModal() {
+  document.getElementById('customModal').classList.remove('open');
+}
+
+function renderBrandTabs() {
+  const tabsContainer = document.getElementById('modalBrandTabs');
+  if (!tabsContainer) return;
+  
+  let tabsHtml = `<button class="p-tab-btn active" data-brand="All" onclick="filterModalBrand('All', this)">All Brands</button>`;
+  tabsHtml += allBrands.map(b => `<button class="p-tab-btn" data-brand="${esc(b.brand)}" onclick="filterModalBrand('${esc(b.brand)}', this)">${esc(b.brand)}</button>`).join('');
+  
+  tabsContainer.innerHTML = tabsHtml;
+}
+
+function filterModalBrand(brandName, btn) {
+  document.querySelectorAll('#modalBrandTabs .p-tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const searchVal = document.getElementById('modalSearch').value;
+  renderModalList(brandName, searchVal);
+}
+
+function filterModalList() {
+  const searchVal = document.getElementById('modalSearch').value;
+  const activeBtn = document.querySelector('#modalBrandTabs .p-tab-btn.active');
+  const brandName = activeBtn ? activeBtn.getAttribute('data-brand') : 'All';
+  renderModalList(brandName, searchVal);
+}
+
+function renderModalList(brandFilter, searchQuery) {
+  const container = document.getElementById('modalListContainer');
+  if (!container) return;
+
+  let filtered = allVariants;
+
+  if (brandFilter !== 'All') {
+    const brandObj = allBrands.find(b => b.brand === brandFilter);
+    if (brandObj) {
+      const modelIds = allModels.filter(m => m.brand_id === brandObj.id).map(m => m.id);
+      filtered = filtered.filter(v => modelIds.includes(v.model_id));
+    }
+  }
+
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(v => {
+      const model = allModels.find(m => m.id === v.model_id);
+      return model && model.model.toLowerCase().includes(q);
     });
   }
 
-  save();
-  alert('Purchase saved & Stock updated!');
-  loadPurchase();
+  if (filtered.length === 0) {
+    container.innerHTML = '<p style="text-align:center; color:var(--mute); padding:20px;">No models found.</p>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(v => {
+    const model = allModels.find(m => m.id === v.model_id);
+    const brand = allBrands.find(b => b.id === model?.brand_id);
+    
+    return `
+      <div class="search-result-item" onclick="selectVariantForPurchase('${v.id}', '${esc(brand ? brand.brand : '')} ${esc(model ? model.model : '')} (${esc(v.variant || '')})')">
+        <div class="search-result-info">
+          <b>${esc(model ? model.model : 'Unknown')}</b>
+          <small>${esc(brand ? brand.brand : '')} | ${esc(v.variant || 'N/A')}</small>
+        </div>
+        <div class="search-result-price">${rs(v.price)}</div>
+      </div>
+    `;
+  }).join('');
 }
 
-function addBrand() {
-  const b = v('nb_name').trim();
-  if(!b) return alert('Please enter a brand name');
-  if(currentBrands.includes(b)) return alert('This brand already exists');
+function selectVariantForPurchase(id, name) {
+  selectedVariantId = id;
+  selectedVariantName = name;
+  closeCustomModal();
+  loadPurchasePage();
+}
+
+// --- SUPPLIER SELECTOR ---
+function openSupplierSelector() {
+  document.getElementById('supplierModal').classList.add('open');
   
-  currentBrands.push(b);
-  // Save karna ho to yahan save logic likh sakte hain (filhal frontend par hai)
-  v('nb_name') = '';
-  loadPurchase();
-}
-
-function addModel() {
-  const brand = v('nm_brand');
-  const name = v('nm_name').trim();
-  const variant = v('nm_variant').trim();
-
-  if(!brand || !name) return alert('Please fill brand and model name');
-
-  // Naya product add karna (price aur stock 0 ke sath)
-  D.products.push({
-    id: uid(),
-    brand: brand,
-    name: name,
-    variant: variant,
-    price: 0,
-    stock: 0
-  });
+  let bodyHtml = `
+    <button class="btn" style="width:100%; margin-bottom:15px;" onclick="openAddSupplier()">➕ Add New Supplier</button>
+    <div id="supplierListContainer"></div>
+  `;
+  document.getElementById('supplierModalBody').innerHTML = bodyHtml;
   
-  save();
-  alert('Model added! You can set price in Database or Purchase it now.');
-  loadPurchase();
+  renderSupplierList();
 }
 
-loadPurchase();
+function closeSupplierModal() {
+  document.getElementById('supplierModal').classList.remove('open');
+}
+
+function renderSupplierList() {
+  const container = document.getElementById('supplierListContainer');
+  if (!container) return;
+
+  if (allSuppliers.length === 0) {
+    container.innerHTML = '<p style="text-align:center; color:var(--mute); padding:20px;">No suppliers yet. Please add one.</p>';
+    return;
+  }
+
+  container.innerHTML = allSuppliers.map(s => `
+    <div class="search-result-item" onclick="selectSupplier('${esc(s.name)}')">
+      <div class="search-result-info">
+        <b>${esc(s.name)}</b>
+        <small>${esc(s.contact || 'No contact')}</small>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectSupplier(name) {
+  selectedSupplierName = name;
+  closeSupplierModal();
+  loadPurchasePage();
+}
+
+// --- ADD SUPPLIER ---
+function openAddSupplier() {
+  document.getElementById('addSupplierModal').classList.add('open');
+}
+
+function closeAddSupplierModal() {
+  document.getElementById('addSupplierModal').classList.remove('open');
+}
+
+async function saveSupplier() {
+  const name = v('s_name').trim();
+  const contact = v('s_contact').trim();
+
+  if(!name) return alert('Supplier name is required');
+
+  try {
+    const { error } = await supabaseClient.from('suppliers').insert([{
+      name: name,
+      contact: contact
+    }]);
+
+    if(error) throw error;
+
+    alert('Supplier added successfully!');
+    
+    document.getElementById('s_name').value = '';
+    document.getElementById('s_contact').value = '';
+    
+    closeAddSupplierModal();
+    await fetchData();
+    renderSupplierList();
+
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+async function savePurchase() {
+  const qty = +v('p_qty');
+  const cost = +v('p_cost');
+  const date = v('p_date');
+  const imeisString = currentImeis.join(',');
+
+  if(!selectedVariantId) return alert('Please select a model');
+  if(qty <= 0) return alert('Quantity must be greater than 0');
+  if(cost <= 0) return alert('Please enter a valid cost price');
+
+  try {
+    const { error } = await supabaseClient.from('purchases').insert([{
+      variant_id: selectedVariantId,
+      supplier_name: selectedSupplierName,
+      quantity: qty,
+      cost_price: cost,
+      purchase_date: date ? new Date(date).toISOString() : new Date().toISOString(),
+      imei_numbers: imeisString
+    }]);
+
+    if(error) throw error;
+
+    alert('Purchase saved successfully!');
+    
+    // Reset form
+    selectedVariantId = '';
+    selectedVariantName = '';
+    selectedSupplierName = '';
+    currentImeis = [];
+    document.getElementById('p_qty').value = '1';
+    document.getElementById('p_cost').value = '';
+    
+    loadPurchasePage();
+
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+loadPurchasePage();
 </script>
 </body>
 </html>

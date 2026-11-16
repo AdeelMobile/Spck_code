@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Verifications - Adeel Mobile</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="css/style.css">
 <style>
-  /* Custom Styling for Verifications Page */
   .ver-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
   .ver-stat-card{background:var(--card);border-radius:16px;padding:20px 10px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.03);border:1px solid var(--line);cursor:pointer;transition:0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center}
   .ver-stat-card:hover{border-color:var(--pri)}
@@ -33,22 +33,17 @@
   .ver-status-badge.approved{background:#d1fae5;color:#065f46}
   .ver-status-badge.rejected{background:#fee2e2;color:#991b1b}
 
-  /* Image Upload & Preview Styles */
   .img-upload-box { border: 2px dashed var(--line); padding: 15px; text-align: center; border-radius: 10px; background: var(--bg); margin-bottom: 15px; transition: 0.2s; position: relative;}
   .img-upload-box:hover { border-color: var(--pri); }
   .img-upload-box input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
   .img-preview { width: 100%; height: 120px; object-fit: contain; background: #fff; border: 1px solid var(--line); border-radius: 8px; margin-top: 10px; display: none; }
 
-  /* Details Modal CSS */
   .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
   .detail-row span { color: var(--mute); }
   .detail-row b { color: var(--ink); text-align: right; }
   .detail-images { display: flex; gap: 10px; margin-top: 15px; }
   .detail-img-box { flex: 1; text-align: center; }
   .detail-img-box img { width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; }
-
-  /* Copy Box Styling */
-  .copy-box { width: 100%; margin-top: 15px; padding: 12px; border: 2px dashed var(--pri); border-radius: 8px; background: var(--pri2); font-family: monospace; font-size: 14px; color: var(--pri); resize: none; outline: none; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -57,17 +52,32 @@
 <script src="js/menu.js"></script>
 <script>
 if(!me) window.location.href='index.html';
+if(me.role!=='admin') window.location.href='dashboard.html';
 
 const urlParams = new URLSearchParams(window.location.search);
 let vTab = urlParams.get('tab') || 'Pending';
 let searchQuery = '';
+let allVerifications = [];
 
-// Variables for storing base64 images
 let frontImgBase64 = '';
 let backImgBase64 = '';
 
-function loadVerifications(){
-  let V = me.role==='admin' ? D.verifications : D.verifications.filter(x=>x.userId===me.id);
+// --- SUPABASE SE DATA FETCH KARO ---
+async function fetchVerifications() {
+  try {
+    const { data, error } = await supabaseClient.from('verifications').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    allVerifications = data || [];
+  } catch (err) {
+    console.error(err);
+    alert("Data fetch error: " + err.message);
+  }
+}
+
+async function loadVerifications(){
+  await fetchVerifications();
+
+  let V = allVerifications;
   
   const cPending = V.filter(x=>x.status==='Pending').length;
   const cApproved = V.filter(x=>x.status==='Approved').length;
@@ -75,10 +85,13 @@ function loadVerifications(){
 
   if(searchQuery){
     const q = searchQuery.toLowerCase();
-    V = V.filter(x => x.cname.toLowerCase().includes(q) || x.cphone.includes(q) || (x.cnic && x.cnic.includes(q)) || (x.details && x.details.toLowerCase().includes(q)));
+    V = V.filter(x => 
+      (x.name && x.name.toLowerCase().includes(q)) || 
+      (x.phone && x.phone.includes(q)) ||
+      (x.cnic && x.cnic.includes(q))
+    );
   }
 
-  // Agar "Submit" tab par hai (Admin ya User dono)
   if(vTab==='Submit'){
     let html = `
     <div class="top" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
@@ -92,7 +105,6 @@ function loadVerifications(){
       <label>Customer WhatsApp</label><input id="v_p" placeholder="03xx-xxxxxxx">
       <label>CNIC Number</label><input id="v_cnic" placeholder="12345-1234567-1">
       
-      <!-- Image Upload Front -->
       <label style="margin-top:10px; display:block;">ID Card Front Image</label>
       <div class="img-upload-box">
         <span style="color:var(--pri); font-weight:600; font-size:14px;">📷 Click to Upload Front Image</span>
@@ -100,7 +112,6 @@ function loadVerifications(){
       </div>
       <img id="preview_front" class="img-preview">
       
-      <!-- Image Upload Back -->
       <label style="margin-top:10px; display:block;">ID Card Back Image</label>
       <div class="img-upload-box">
         <span style="color:var(--pri); font-weight:600; font-size:14px;">📷 Click to Upload Back Image</span>
@@ -119,7 +130,6 @@ function loadVerifications(){
     return renderApp('Verifications', html);
   }
 
-  // MAIN LIST VIEW
   let html = `
   <div class="top" style="flex-wrap: wrap; gap:10px;">
     <h2>Verifications</h2>
@@ -150,21 +160,18 @@ function loadVerifications(){
   if(vTab!=='Submit') V = V.filter(x=>x.status===vTab);
 
   html += V.slice().reverse().map(x=>{
-    const u = D.users.find(y=>y.id==x.userId);
-    
-    // Button: View Details
     let actionBtn = `<button class="btn sm" style="margin-top:10px;" onclick="viewDetails('${x.id}')">👁️ View Details</button>`;
 
     return `<div class="ver-list-item">
       <div class="ver-list-left">
         <div class="ver-avatar">📱</div>
         <div class="ver-info">
-          <b>${esc(x.cname)}</b>
-          <small>${esc(x.cphone)} ${me.role==='admin'?`• Agent: <b>${esc(u?u.name:'Admin')}</b>`:''}</small>
+          <b>${esc(x.name || 'Unknown')}</b>
+          <small>${esc(x.phone || '')} ${x.added_by ? `• Agent: <b>${esc(x.added_by)}</b>` : ''}</small>
           ${actionBtn}
         </div>
       </div>
-      <div class="ver-status-badge ${x.status.toLowerCase()}">
+      <div class="ver-status-badge ${x.status ? x.status.toLowerCase() : 'pending'}">
         ${x.status==='Pending'?'⏳ Pending':(x.status==='Approved'?'✅ Approved':'❌ Rejected')}
       </div>
     </div>`;
@@ -173,32 +180,28 @@ function loadVerifications(){
   renderApp('Verifications', html);
 }
 
-// --- VIEW DETAILS MODAL FUNCTION ---
 function viewDetails(id) {
-  const x = D.verifications.find(y => y.id == id);
+  const x = allVerifications.find(y => String(y.id) === String(id));
   if(!x) return;
-  const u = D.users.find(y => y.id == x.userId);
   
-  // Image handling (URL or Base64)
   let frontImgHtml = '<span style="color:var(--mute); font-size:12px;">Not uploaded</span>';
   let backImgHtml = '<span style="color:var(--mute); font-size:12px;">Not uploaded</span>';
   
-  if(x.frontImg) {
-    if(x.frontImg.startsWith('data:image')) {
-      frontImgHtml = `<img src="${x.frontImg}" onclick="window.open(this.src)">`;
+  if(x.front_img) {
+    if(x.front_img.startsWith('data:image')) {
+      frontImgHtml = `<img src="${x.front_img}" onclick="window.open(this.src)">`;
     } else {
-      frontImgHtml = `<a href="${esc(x.frontImg)}" target="_blank" style="color:var(--pri); font-size:12px;">View Image Link</a>`;
+      frontImgHtml = `<a href="${esc(x.front_img)}" target="_blank" style="color:var(--pri); font-size:12px;">View Image Link</a>`;
     }
   }
-  if(x.backImg) {
-    if(x.backImg.startsWith('data:image')) {
-      backImgHtml = `<img src="${x.backImg}" onclick="window.open(this.src)">`;
+  if(x.back_img) {
+    if(x.back_img.startsWith('data:image')) {
+      backImgHtml = `<img src="${x.back_img}" onclick="window.open(this.src)">`;
     } else {
-      backImgHtml = `<a href="${esc(x.backImg)}" target="_blank" style="color:var(--pri); font-size:12px;">View Image Link</a>`;
+      backImgHtml = `<a href="${esc(x.back_img)}" target="_blank" style="color:var(--pri); font-size:12px;">View Image Link</a>`;
     }
   }
 
-  // Action buttons
   let actionHtml = '';
   if(me.role === 'admin' && x.status === 'Pending') {
     actionHtml = `
@@ -209,17 +212,16 @@ function viewDetails(id) {
     `;
   }
 
-  // Copy Box Text (Name, Phone, CNIC)
-  let copyText = `Name: ${x.cname}\nPhone: ${x.cphone}\nCNIC: ${x.cnic || 'N/A'}`;
+  let copyText = `Name: ${x.name}\nPhone: ${x.phone}\nCNIC: ${x.cnic || 'N/A'}`;
 
   let html = `
     <h2 style="margin-bottom:15px; border-bottom:1px solid var(--line); padding-bottom:10px; color:var(--pri);">Verification Details</h2>
     
-    <div class="detail-row"><span>Customer Name</span><b>${esc(x.cname)}</b></div>
-    <div class="detail-row"><span>WhatsApp Number</span><b>${esc(x.cphone)}</b></div>
+    <div class="detail-row"><span>Customer Name</span><b>${esc(x.name)}</b></div>
+    <div class="detail-row"><span>WhatsApp Number</span><b>${esc(x.phone)}</b></div>
     <div class="detail-row"><span>CNIC Number</span><b>${esc(x.cnic || 'Not Provided')}</b></div>
-    <div class="detail-row"><span>Submitted By</span><b>${esc(u ? u.name : 'Admin')}</b></div>
-    <div class="detail-row"><span>Online Loan</span><b style="color:${x.loan==='Yes'?'var(--bad)':'var(--ok)'}">${esc(x.loan || 'No')}</b></div>
+    <div class="detail-row"><span>Submitted By</span><b>${esc(x.added_by || 'Admin')}</b></div>
+    <div class="detail-row"><span>Online Loan</span><b style="color:${x.loan_taken==='Yes'?'var(--bad)':'var(--ok)'}">${esc(x.loan_taken || 'No')}</b></div>
     <div class="detail-row"><span>Status</span><b>${x.status}</b></div>
 
     <div class="detail-images">
@@ -233,7 +235,6 @@ function viewDetails(id) {
       </div>
     </div>
 
-    <!-- NAYA: Copy Box -->
     <div style="margin-top:15px;">
       <small style="color:var(--mute); display:block; margin-bottom:5px;">Copy Customer Details</small>
       <textarea class="copy-box" id="copy_box_${x.id}" readonly rows="3">${copyText}</textarea>
@@ -248,26 +249,19 @@ function viewDetails(id) {
   modal(html);
 }
 
-// Copy Function
 function copyToClipboard(id) {
   const el = document.getElementById(id);
   if(!el) return;
   el.select();
   el.setSelectionRange(0, 99999);
   try {
-    navigator.clipboard.writeText(el.value).then(() => {
-      alert('Details copied successfully!');
-    }).catch(() => {
-      document.execCommand('copy');
-      alert('Details copied!');
-    });
+    navigator.clipboard.writeText(el.value).then(() => alert('Details copied successfully!'));
   } catch(err) {
     document.execCommand('copy');
     alert('Details copied!');
   }
 }
 
-// Image Resize Function
 function resizeAndPreview(input, type) {
   const file = input.files[0];
   if (!file) return;
@@ -279,8 +273,6 @@ function resizeAndPreview(input, type) {
       const canvas = document.createElement('canvas');
       let width = img.width;
       let height = img.height;
-      
-      // Auto Resize (Max 600px width)
       const maxSize = 600;
       if (width > maxSize) {
         height = Math.round((height * maxSize) / width);
@@ -292,14 +284,11 @@ function resizeAndPreview(input, type) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
       
-      // Convert to Base64 (JPEG quality 0.7 for small size)
       const base64Image = canvas.toDataURL('image/jpeg', 0.7);
       
-      // Save to Global Variables
       if(type === 'front') frontImgBase64 = base64Image;
       if(type === 'back') backImgBase64 = base64Image;
 
-      // Preview Show karo
       const previewId = type === 'front' ? 'preview_front' : 'preview_back';
       const previewEl = document.getElementById(previewId);
       if(previewEl) {
@@ -312,36 +301,48 @@ function resizeAndPreview(input, type) {
   reader.readAsDataURL(file);
 }
 
-function submitVerify(){
-  if(!v('v_n').trim() || !v('v_p').trim()) return alert('Name and phone are required');
-  
-  D.verifications.push({
-    id: uid(), 
-    userId: me.id, 
-    cname: v('v_n').trim(), 
-    cphone: v('v_p').trim(), 
-    cnic: v('v_cnic').trim(), // Saving CNIC
-    frontImg: frontImgBase64, // Saving uploaded image
-    backImg: backImgBase64,   // Saving uploaded image
-    loan: v('v_loan'),
-    status: 'Pending', 
-    date: Date.now()
-  });
-  
-  save(); 
-  
-  // Reset image variables
-  frontImgBase64 = '';
-  backImgBase64 = '';
+async function submitVerify(){
+  const name = v('v_n').trim();
+  const phone = v('v_p').trim();
+  const cnic = v('v_cnic').trim();
+  const loan = v('v_loan');
 
-  vTab='Pending'; 
-  searchQuery=''; 
-  loadVerifications();
+  if(!name || !phone) return alert('Name and phone are required');
+  
+  try {
+    const { error } = await supabaseClient.from('verifications').insert([{
+      name: name,
+      phone: phone,
+      cnic: cnic,
+      front_img: frontImgBase64,
+      back_img: backImgBase64,
+      loan_taken: loan,
+      status: 'Pending',
+      added_by: me.username
+    }]);
+
+    if(error) throw error;
+
+    alert('Verification added!');
+    frontImgBase64 = '';
+    backImgBase64 = '';
+    vTab='Pending'; 
+    searchQuery=''; 
+    loadVerifications();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
 }
 
-function changeV(id,st){
-  const x = D.verifications.find(y=>y.id==id); 
-  if(x){ x.status=st; save(); modal(); loadVerifications(); }
+async function changeV(id, st){
+  try {
+    const { error } = await supabaseClient.from('verifications').update({ status: st }).eq('id', id);
+    if(error) throw error;
+    modal();
+    loadVerifications();
+  } catch (err) {
+    alert('Error updating status: ' + err.message);
+  }
 }
 
 loadVerifications();
