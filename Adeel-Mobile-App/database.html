@@ -26,18 +26,10 @@
 
   /* Brands List */
   .brand-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
-  .brand-tag-wrapper {
-    display: flex; align-items: center; background: var(--pri2); border-radius: 8px; overflow: hidden;
-  }
-  .brand-tag { 
-    color: var(--pri); padding: 8px 12px; font-size: 13px; font-weight: 600; 
-    cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-  }
+  .brand-tag-wrapper { display: flex; align-items: center; background: var(--pri2); border-radius: 8px; overflow: hidden; }
+  .brand-tag { color: var(--pri); padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
   .brand-tag.hidden-brand { opacity: 0.5; text-decoration: line-through; }
-  .brand-toggle-btn {
-    background: transparent; border: none; border-left: 1px solid rgba(0,0,0,0.1);
-    padding: 8px 10px; cursor: pointer; font-size: 14px; color: var(--pri);
-  }
+  .brand-toggle-btn { background: transparent; border: none; border-left: 1px solid rgba(0,0,0,0.1); padding: 8px 10px; cursor: pointer; font-size: 14px; color: var(--pri); }
   .brand-toggle-btn:active { background: rgba(0,0,0,0.05); }
 
   /* Search Bar */
@@ -52,6 +44,9 @@
   .price-item-info small { display: block; font-size: 12px; color: var(--mute); margin-top: 2px; }
   .price-item-amount { font-weight: 700; color: var(--pri); font-size: 15px; }
 
+  /* Warning Badge */
+  .warning-badge { display: inline-block; background: #fee2e2; color: #991b1b; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-bottom: 4px; }
+
   /* Image Upload */
   .image-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; margin-top: 10px; }
   .img-preview-box { position: relative; border: 2px solid var(--line); border-radius: 8px; overflow: hidden; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #f0f0f0; }
@@ -65,7 +60,7 @@
   .modal-content { max-height: 85vh; overflow-y: auto; padding-bottom: 20px; }
   .btn-danger { background: #ffebee; color: #d32f2f; border: 1px solid #ffcdd2; margin-top: 10px; }
   
-  /* Textarea for Specs */
+  /* Textarea */
   textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); font-family: monospace; font-size: 13px; outline: none; resize: vertical; }
   textarea:focus { border-color: var(--pri); }
 </style>
@@ -130,9 +125,16 @@ async function loadDatabase() {
         })
         .map(v => {
           const model = allModels.find(m => m.id === v.model_id);
+          
+          let isMissing = false;
+          if (!v.image_link || !v.specs || Object.keys(v.specs).length === 0) {
+            isMissing = true;
+          }
+
           return `
           <div class="price-item" onclick="openEditPopup('${v.id}')">
             <div class="price-item-info">
+              ${isMissing ? `<span class="warning-badge">⚠️ Incomplete Details</span>` : ''}
               <b>${esc(model.model)}</b>
               <small>Variant: ${esc(v.variant || 'N/A')}</small>
             </div>
@@ -156,10 +158,9 @@ async function loadDatabase() {
     <label>Price (Rs)</label>
     <input id="m_price" type="number" placeholder="0">
     
-    <!-- NAYA SPECS BOX -->
-    <label>Specifications (Table ke liye)</label>
-    <p style="font-size:11px; color:var(--mute); margin-bottom:5px;">Aap pura text copy-paste karein. Software khud table bana lega. Example:<br>- Battery: 5000 mAh<br>- Camera: 50 MP</p>
-    <textarea id="m_specs" rows="6" placeholder="Display&#10;- Display Size: 6.87 Inches&#10;- Refresh Rate: 120Hz&#10;&#10;Camera&#10;- Rear Camera: 50MP"></textarea>
+    <label>Specifications (Kisi bhi format me paste karein)</label>
+    <p style="font-size:11px; color:var(--mute); margin-bottom:5px;">Aap Headings, Colons, Bullets ya Simple Lines kisi bhi tarah paste karein. Software khud Table bana lega.</p>
+    <textarea id="m_specs" rows="8" placeholder="Display:&#10;- 6.78 Inches IPS LCD&#10;- 120Hz Refresh Rate&#10;&#10;Battery:&#10;7000mAh&#10;&#10;Camera: 50MP Main"></textarea>
     
     <label style="margin-top:15px; display:block;">Product Images (Multiple select karein)</label>
     <input type="file" id="m_images" accept="image/*" multiple onchange="handleImageSelect(event, 'add')" style="padding: 10px; background: #fff; border: 1px dashed var(--pri);">
@@ -346,31 +347,52 @@ async function uploadImagesToSupabase() {
   return uploadedUrls;
 }
 
-// --- SMART SPECS PARSER ---
-// Yeh function kisi bhi format ke text ko JSON mein convert kar dega
+// --- SUPER SMART SPECS PARSER ---
 function parseSpecs(specsText) {
   if (!specsText || specsText.trim() === "") return null;
   
   let specsObj = {};
   const lines = specsText.split('\n');
+  let currentHeading = '';
   
   lines.forEach(line => {
     let cleanLine = line.trim();
-    if (cleanLine === "") return; // Khaali lines skip karo
+    if (cleanLine === "") return;
     
-    // Agar line bullet point ya hyphen se shuru ho rahi hai, toh usko hatao
+    // Bullet points (•, -, *) hatao
     cleanLine = cleanLine.replace(/^[-•*]\s*/, '');
 
-    // Colon dhoondo
-    const colonIndex = cleanLine.indexOf(':');
-    
-    if (colonIndex > 0) {
-      // Colon se pehle wala Key hai, baad wala Value
+    // Agar line colon se khatam hoti hai (e.g., "Display:"), toh isko heading samjho
+    if (cleanLine.endsWith(':')) {
+      currentHeading = cleanLine.slice(0, -1).trim();
+      return;
+    }
+
+    // Agar line mein colon hai (e.g., "Battery: 5000mAh")
+    if (cleanLine.includes(':')) {
+      const colonIndex = cleanLine.indexOf(':');
       const key = cleanLine.substring(0, colonIndex).trim();
       const value = cleanLine.substring(colonIndex + 1).trim();
       
       if (key && value) {
         specsObj[key] = value;
+      }
+      return;
+    }
+
+    // Agar line mein colon nahi hai, toh isko current heading ke sath milao
+    if (currentHeading && cleanLine) {
+      if (specsObj[currentHeading]) {
+        specsObj[currentHeading] += ', ' + cleanLine;
+      } else {
+        specsObj[currentHeading] = cleanLine;
+      }
+    } else if (cleanLine && !currentHeading) {
+      // Agar koi heading nahi hai, toh line ko "Details" ke andar daal do
+      if (specsObj['Details']) {
+        specsObj['Details'] += ', ' + cleanLine;
+      } else {
+        specsObj['Details'] = cleanLine;
       }
     }
   });
@@ -401,7 +423,6 @@ async function addModel() {
       finalImageUrl = urls[coverIndex] || urls[0];
     }
 
-    // Smart parser use karo
     const specsJson = parseSpecs(specsText);
 
     let modelId = null;
@@ -458,11 +479,10 @@ function openEditPopup(variantId) {
     const priceVal = variant.price;
     const imgUrl = variant.image_link || '';
     
-    // Specs ko wapas text mein badlo edit ke liye
     let specsText = "";
     if (variant.specs) {
       if (typeof variant.specs === 'object') {
-        specsText = Object.entries(variant.specs).map(([k, v]) => `- ${k}: ${v}`).join('\n');
+        specsText = Object.entries(variant.specs).map(([k, v]) => `${k}: ${v}`).join('\n');
       } else {
         specsText = variant.specs;
       }
@@ -485,7 +505,7 @@ function openEditPopup(variantId) {
         <input id="e_price" type="number" value="${priceVal}">
         
         <label>Specifications</label>
-        <textarea id="e_specs" rows="6" placeholder="Display&#10;- Display Size: 6.87 Inches&#10;- Refresh Rate: 120Hz">${specsText}</textarea>
+        <textarea id="e_specs" rows="8" placeholder="Display:&#10;- 6.78 Inches IPS LCD&#10;- 120Hz Refresh Rate&#10;&#10;Battery:&#10;7000mAh">${specsText}</textarea>
         
         <label>Current Image</label>
         <div style="margin-bottom:10px;">
@@ -532,7 +552,6 @@ async function saveEditedProduct(variantId, oldImageUrl) {
       finalImageUrl = urls[coverIndex] || urls[0];
     }
 
-    // Smart parser use karo
     const specsJson = parseSpecs(newSpecsText);
 
     const { error } = await supabaseClient.from('variants').update({ 
