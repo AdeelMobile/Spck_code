@@ -1,6 +1,6 @@
 // ==========================================
 // STORE LOGIC & SECTION LOADER (Supabase Data)
-// UPDATE: Dynamic Installment Rules
+// UPDATE: Dynamic Installment Rules & Auto-Resize Card
 // ==========================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -116,7 +116,7 @@ async function loadProductsFromSupabase() {
 
       let imageHtml = v.image_link ? `<img src="${v.image_link}" alt="${esc(pName)}" style="width:100%; height:100%; object-fit:contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size:40px\\'>📱</div>';" />` : `<div style="font-size:40px;">📱</div>`;
 
-      // Yahan Plans ka Background Grey (#f8fafc) kiya gaya hai
+      // --- UPDATED CARD HTML (Rs aur Amount ek line + Auto Resize) ---
       html += `<div class="p-card" data-name="${esc(pName)}" data-price="${price}" data-brand="${esc(brand.brand)}" onclick="showSpecs(${pData})" style="cursor:pointer;">
         <div class="p-brand">${esc(brand.brand)}</div>
         <div class="p-img">${imageHtml}</div>
@@ -124,16 +124,24 @@ async function loadProductsFromSupabase() {
         <div class="p-info">
           <div class="p-name">${esc(pName)} <br><small style="font-weight:400; color:var(--mute);">${esc(pVariant)}</small></div>
           
-          <!-- Pehla Box: Price aur Advance -->
+          <!-- Pehla Box: Price aur Advance (Ek Line Set) -->
           <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <span style="font-size:16px; color:#2563eb; font-weight:800;">${rs(price)}</span>
-              <span style="font-size:13px; color:#64748b; font-weight:500;">Rs</span>
+            
+            <!-- Total Price Row -->
+            <div style="display:flex; align-items:baseline; gap:5px; margin-bottom:8px; white-space:nowrap;">
+              <span style="font-size:13px; color:#64748b; font-weight:600;">Rs</span>
+              <span style="font-size:clamp(16px, 4vw, 20px); color:#2563eb; font-weight:800; overflow:hidden; text-overflow:ellipsis;">${rs(price).replace('Rs ', '').replace('Rs', '')}</span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:13px; color:#16a34a; font-weight:600;">${rs(advance)}</span>
-              <span style="font-size:12px; color:#64748b; font-weight:400;">Advance (${advancePct}%)</span>
+
+            <!-- Advance Row -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:5px;">
+              <div style="display:flex; align-items:baseline; gap:4px; white-space:nowrap;">
+                <span style="font-size:12px; color:#16a34a; font-weight:700;">Rs</span>
+                <span style="font-size:clamp(13px, 3.5vw, 16px); color:#16a34a; font-weight:800; overflow:hidden; text-overflow:ellipsis;">${rs(advance).replace('Rs ', '').replace('Rs', '')}</span>
+              </div>
+              <span style="font-size:11px; color:#64748b; font-weight:500; text-align:right; line-height:1.2;">Advance<br>(${advancePct}%)</span>
             </div>
+
           </div>
 
           <!-- Doosra Hissa: 3 Alag Cards (Line wise, Grey Background) -->
