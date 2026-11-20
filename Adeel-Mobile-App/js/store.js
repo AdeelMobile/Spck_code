@@ -1,6 +1,6 @@
 // ==========================================
 // STORE LOGIC & SECTION LOADER (Supabase Data)
-// UPDATE: 2026-11-15 (Dynamic Installment Rules)
+// UPDATE: Dynamic Installment Rules
 // ==========================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -31,6 +31,15 @@ function initBannerSlider() {
       const track = document.getElementById('sliderTrack');
       if (track) track.style.transform = `translateX(-${currentSlide * 100}%)`;
     }, 3000);
+  }
+}
+
+// --- MENU BUTTON LOGIC (Direct Sidebar Open) ---
+function toggleSidebar() {
+  if (typeof me !== 'undefined' && me && me.role === 'admin') {
+    window.location.href = 'admin-dashboard.html';
+  } else {
+    window.location.href = 'index.html';
   }
 }
 
@@ -70,9 +79,11 @@ async function loadProductsFromSupabase() {
     let html = '';
     let count = 0;
 
-    // --- GET SETTINGS FOR CARD DISPLAY ---
     const advLow = D.settings.advLow || 20;   
     const advHigh = D.settings.advHigh || 30; 
+    const mark3 = D.settings.mark3 || 15;
+    const mark6 = D.settings.mark6 || 27;
+    const mark9 = D.settings.mark9 || 37;
 
     variants.forEach(v => {
       const model = models.find(m => m.id === v.model_id);
@@ -80,56 +91,70 @@ async function loadProductsFromSupabase() {
 
       const brand = brandsData.find(b => b.id === model.brand_id);
       if (!brand) return; 
-
-      const brandName = brand.brand;
+      
       if(v.show_website === false) return; 
 
       count++;
       const price = v.price || 0;
       
-      // Card par Advance calculate karo (Price ke hisaab se)
       let advancePct = (price < 60000) ? advLow : advHigh;
-      const advance = price * (advancePct / 100); 
+      const advance = price * (advancePct / 100);
+      
+      const total3 = price + (price * mark3 / 100);
+      const total6 = price + (price * mark6 / 100);
+      const total9 = price + (price * mark9 / 100);
+
+      const m3 = Math.round((total3 - advance) / 3);
+      const m6 = Math.round((total6 - advance) / 6);
+      const m9 = Math.round((total9 - advance) / 9);
       
       const pName = model.model;
       const pVariant = v.variant;
       
-      const msg = encodeURIComponent('Hello, I want to book ' + brandName + ' ' + pName);
+      const msg = encodeURIComponent('Hello, I want to book ' + brand.brand + ' ' + pName);
       const pData = JSON.stringify(v).replace(/"/g, '&quot;');
 
-      let imageHtml = '';
-      if (v.image_link) {
-        imageHtml = `<img src="${v.image_link}" alt="${esc(pName)}" style="width:100%; height:100%; object-fit:contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size:40px\\'>📱</div>';" />`;
-      } else {
-        imageHtml = `<div style="font-size:40px;">📱</div>`; 
-      }
+      let imageHtml = v.image_link ? `<img src="${v.image_link}" alt="${esc(pName)}" style="width:100%; height:100%; object-fit:contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size:40px\\'>📱</div>';" />` : `<div style="font-size:40px;">📱</div>`;
 
-      html += `<div class="p-card" data-price="${price}" data-brand="${esc(brandName)}" onclick="showSpecs(${pData})" style="cursor:pointer;">
-        <div class="p-brand">${esc(brandName)}</div>
+      html += `<div class="p-card" data-name="${esc(pName)}" data-price="${price}" data-brand="${esc(brand.brand)}" onclick="showSpecs(${pData})" style="cursor:pointer;">
+        <div class="p-brand">${esc(brand.brand)}</div>
         <div class="p-img">${imageHtml}</div>
         
         <div class="p-info">
           <div class="p-name">${esc(pName)} <br><small style="font-weight:400; color:var(--mute);">${esc(pVariant)}</small></div>
           
-          <div class="price-block">
-            <div class="price-row main-price">
-              <span class="price-label">Rs</span>
-              <span class="price-value">${rs(price)}</span>
+          <!-- Pehla Box: Price aur Advance -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <span style="font-size:13px; color:#64748b; font-weight:500;">Rs</span>
+              <span style="font-size:16px; color:#2563eb; font-weight:800;">${rs(price)}</span>
             </div>
-            <div class="price-row down-payment">
-              <span class="price-label">Advance (${advancePct}%)</span>
-              <span class="price-value">${rs(advance)}</span>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:13px; color:#64748b; font-weight:500;">Advance (${advancePct}%)</span>
+              <span style="font-size:15px; color:#16a34a; font-weight:700;">${rs(advance)}</span>
             </div>
           </div>
 
-          <div class="p-actions" style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;" onclick="event.stopPropagation()">
-            <button class="btn-action" style="background: var(--pri2); color: var(--pri); border-color: var(--pri); font-weight: 700;" onclick="showInstallmentPlans(${pData})">📋 Plans</button>
-            <button class="btn-action verify-btn" onclick="showVerifyForm(${pData})">Verification</button>
+          <!-- Doosra Box: 3, 6, 9 Months Plans -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:13px; color:#64748b; font-weight:500;">3 Months</span>
+              <span style="font-size:14px; color:#ea580c; font-weight:700;">${rs(m3)}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:13px; color:#64748b; font-weight:500;">6 Months</span>
+              <span style="font-size:14px; color:#9333ea; font-weight:700;">${rs(m6)}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:13px; color:#64748b; font-weight:500;">9 Months</span>
+              <span style="font-size:14px; color:#0d9488; font-weight:700;">${rs(m9)}</span>
+            </div>
           </div>
-          
-          <a class="btn-wa" href="https://wa.me/?text=${msg}" target="_blank" onclick="event.stopPropagation()">
-            Order on WhatsApp
-          </a>
+
+          <div class="p-actions" style="display:flex; flex-direction:column; gap:6px; margin-top:10px;" onclick="event.stopPropagation()">
+            <button class="btn-action verify-btn" style="width:100%;" onclick="showVerifyForm(${pData})">Verification</button>
+            <a class="btn-wa" href="https://wa.me/?text=${msg}" target="_blank" style="width:100%; text-align:center;">Order on WhatsApp</a>
+          </div>
         </div>
       </div>`;
     });
