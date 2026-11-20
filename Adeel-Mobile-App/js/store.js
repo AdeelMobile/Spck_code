@@ -116,6 +116,7 @@ async function loadProductsFromSupabase() {
 
       let imageHtml = v.image_link ? `<img src="${v.image_link}" alt="${esc(pName)}" style="width:100%; height:100%; object-fit:contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size:40px\\'>📱</div>';" />` : `<div style="font-size:40px;">📱</div>`;
 
+      // Yahan Labels ko Right aur Amounts ko Left kiya gaya hai
       html += `<div class="p-card" data-name="${esc(pName)}" data-price="${price}" data-brand="${esc(brand.brand)}" onclick="showSpecs(${pData})" style="cursor:pointer;">
         <div class="p-brand">${esc(brand.brand)}</div>
         <div class="p-img">${imageHtml}</div>
@@ -126,28 +127,28 @@ async function loadProductsFromSupabase() {
           <!-- Pehla Box: Price aur Advance -->
           <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-              <span style="font-size:13px; color:#64748b; font-weight:500;">Rs</span>
               <span style="font-size:16px; color:#2563eb; font-weight:800;">${rs(price)}</span>
+              <span style="font-size:13px; color:#64748b; font-weight:500;">Rs</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:13px; color:#64748b; font-weight:500;">Advance (${advancePct}%)</span>
               <span style="font-size:15px; color:#16a34a; font-weight:700;">${rs(advance)}</span>
+              <span style="font-size:13px; color:#64748b; font-weight:500;">Advance (${advancePct}%)</span>
             </div>
           </div>
 
           <!-- Doosra Box: 3, 6, 9 Months Plans -->
           <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:12px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <span style="font-size:13px; color:#64748b; font-weight:500;">3 Months</span>
               <span style="font-size:14px; color:#ea580c; font-weight:700;">${rs(m3)}</span>
+              <span style="font-size:13px; color:#64748b; font-weight:500;">3 Months</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <span style="font-size:13px; color:#64748b; font-weight:500;">6 Months</span>
               <span style="font-size:14px; color:#9333ea; font-weight:700;">${rs(m6)}</span>
+              <span style="font-size:13px; color:#64748b; font-weight:500;">6 Months</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:13px; color:#64748b; font-weight:500;">9 Months</span>
               <span style="font-size:14px; color:#0d9488; font-weight:700;">${rs(m9)}</span>
+              <span style="font-size:13px; color:#64748b; font-weight:500;">9 Months</span>
             </div>
           </div>
 
