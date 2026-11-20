@@ -116,7 +116,7 @@ async function loadProductsFromSupabase() {
 
       let imageHtml = v.image_link ? `<img src="${v.image_link}" alt="${esc(pName)}" style="width:100%; height:100%; object-fit:contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size:40px\\'>📱</div>';" />` : `<div style="font-size:40px;">📱</div>`;
 
-      // Yahan Labels ko Right aur Amounts ko Left kiya gaya hai
+      // Yahan Plans ka Background Grey (#f8fafc) kiya gaya hai
       html += `<div class="p-card" data-name="${esc(pName)}" data-price="${price}" data-brand="${esc(brand.brand)}" onclick="showSpecs(${pData})" style="cursor:pointer;">
         <div class="p-brand">${esc(brand.brand)}</div>
         <div class="p-img">${imageHtml}</div>
@@ -126,29 +126,32 @@ async function loadProductsFromSupabase() {
           
           <!-- Pehla Box: Price aur Advance -->
           <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
               <span style="font-size:16px; color:#2563eb; font-weight:800;">${rs(price)}</span>
               <span style="font-size:13px; color:#64748b; font-weight:500;">Rs</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:15px; color:#16a34a; font-weight:700;">${rs(advance)}</span>
-              <span style="font-size:13px; color:#64748b; font-weight:500;">Advance (${advancePct}%)</span>
+              <span style="font-size:13px; color:#16a34a; font-weight:600;">${rs(advance)}</span>
+              <span style="font-size:12px; color:#64748b; font-weight:400;">Advance (${advancePct}%)</span>
             </div>
           </div>
 
-          <!-- Doosra Box: 3, 6, 9 Months Plans -->
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:12px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <span style="font-size:14px; color:#ea580c; font-weight:700;">${rs(m3)}</span>
-              <span style="font-size:13px; color:#64748b; font-weight:500;">3 Months</span>
+          <!-- Doosra Hissa: 3 Alag Cards (Line wise, Grey Background) -->
+          <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
+            <!-- 3 Month Card -->
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:12px; color:#ea580c; font-weight:600;">3 Months</span>
+              <span style="font-size:13px; color:#ea580c; font-weight:700;">${rs(m3)}</span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <span style="font-size:14px; color:#9333ea; font-weight:700;">${rs(m6)}</span>
-              <span style="font-size:13px; color:#64748b; font-weight:500;">6 Months</span>
+            <!-- 6 Month Card -->
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:12px; color:#9333ea; font-weight:600;">6 Months</span>
+              <span style="font-size:13px; color:#9333ea; font-weight:700;">${rs(m6)}</span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:14px; color:#0d9488; font-weight:700;">${rs(m9)}</span>
-              <span style="font-size:13px; color:#64748b; font-weight:500;">9 Months</span>
+            <!-- 9 Month Card -->
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:12px; color:#0d9488; font-weight:600;">9 Months</span>
+              <span style="font-size:13px; color:#0d9488; font-weight:700;">${rs(m9)}</span>
             </div>
           </div>
 
