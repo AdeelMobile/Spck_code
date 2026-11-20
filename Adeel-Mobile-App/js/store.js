@@ -1,6 +1,6 @@
 // ==========================================
 // STORE LOGIC & SECTION LOADER (Supabase Data)
-// UPDATE: Dynamic Installment Rules & Auto-Resize Card
+// UPDATE: Dynamic Installment Rules, Auto-Resize Card, & Aligned Product Titles
 // ==========================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -116,13 +116,18 @@ async function loadProductsFromSupabase() {
 
       let imageHtml = v.image_link ? `<img src="${v.image_link}" alt="${esc(pName)}" style="width:100%; height:100%; object-fit:contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size:40px\\'>📱</div>';" />` : `<div style="font-size:40px;">📱</div>`;
 
-      // --- UPDATED CARD HTML (Rs aur Amount ek line + Auto Resize) ---
+      // --- UPDATED CARD HTML (Fixed Title Height + Rs/Amount Auto Resize) ---
       html += `<div class="p-card" data-name="${esc(pName)}" data-price="${price}" data-brand="${esc(brand.brand)}" onclick="showSpecs(${pData})" style="cursor:pointer;">
         <div class="p-brand">${esc(brand.brand)}</div>
         <div class="p-img">${imageHtml}</div>
         
         <div class="p-info">
-          <div class="p-name">${esc(pName)} <br><small style="font-weight:400; color:var(--mute);">${esc(pVariant)}</small></div>
+          
+          <!-- Title Area (Fixed Height for Equal Alignment) -->
+          <div class="p-name" style="min-height: 55px; display: flex; flex-direction: column; justify-content: flex-start; margin-bottom: 10px; overflow: hidden;">
+            <div style="font-weight: 700; font-size: 15px; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${esc(pName)}</div>
+            <div style="font-weight: 400; color: var(--mute); font-size: 12px; margin-top: 2px;">${esc(pVariant)}</div>
+          </div>
           
           <!-- Pehla Box: Price aur Advance (Ek Line Set) -->
           <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px;">
@@ -163,7 +168,7 @@ async function loadProductsFromSupabase() {
             </div>
           </div>
 
-          <div class="p-actions" style="display:flex; flex-direction:column; gap:6px; margin-top:10px;" onclick="event.stopPropagation()">
+          <div class="p-actions" style="display:flex; flex-direction:column; gap:6px; margin-top:auto;" onclick="event.stopPropagation()">
             <button class="btn-action verify-btn" style="width:100%;" onclick="showVerifyForm(${pData})">Verification</button>
             <a class="btn-wa" href="https://wa.me/?text=${msg}" target="_blank" style="width:100%; text-align:center;">Order on WhatsApp</a>
           </div>
