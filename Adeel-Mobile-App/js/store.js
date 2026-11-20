@@ -1,6 +1,6 @@
 // ==========================================
 // STORE LOGIC & SECTION LOADER (Supabase Data)
-// UPDATE: Dynamic Installment Rules, Auto-Resize Card, & Aligned Product Titles
+// UPDATE: Premium 3D UI, Clean Images, Black Month Text
 // ==========================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -55,6 +55,11 @@ let verifyBackImg = '';
 async function loadProductsFromSupabase() {
   const grid = document.getElementById('productGrid');
   if (!grid) return;
+
+  // Grid Background ko Pastel Blue (3D floating look ke liye)
+  grid.style.backgroundColor = '#f0f4f8'; 
+  grid.style.padding = '20px 10px';
+  grid.style.borderRadius = '20px';
 
   if (!supabaseClient) {
     grid.innerHTML = '<p style="text-align:center; color:var(--bad); grid-column: span 2;">Database connection error. Please refresh.</p>';
@@ -114,63 +119,74 @@ async function loadProductsFromSupabase() {
       const msg = encodeURIComponent('Hello, I want to book ' + brand.brand + ' ' + pName);
       const pData = JSON.stringify(v).replace(/"/g, '&quot;');
 
+      // CLEAN IMAGE CODE: White background, no shadow
       let imageHtml = v.image_link ? `<img src="${v.image_link}" alt="${esc(pName)}" style="width:100%; height:100%; object-fit:contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size:40px\\'>📱</div>';" />` : `<div style="font-size:40px;">📱</div>`;
 
-      // --- UPDATED CARD HTML (Fixed Title Height + Rs/Amount Auto Resize) ---
-      html += `<div class="p-card" data-name="${esc(pName)}" data-price="${price}" data-brand="${esc(brand.brand)}" onclick="showSpecs(${pData})" style="cursor:pointer;">
-        <div class="p-brand">${esc(brand.brand)}</div>
-        <div class="p-img">${imageHtml}</div>
+      // --- NAYA 3D GLOSSY CARD DESIGN (With Black Month Text) ---
+      html += `<div class="p-card" data-name="${esc(pName)}" data-price="${price}" data-brand="${esc(brand.brand)}" onclick="showSpecs(${pData})" style="cursor:pointer; background: white; border-radius: 20px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05), 0 20px 48px rgba(0,0,0,0.05), inset 0 -4px 0 rgba(0,0,0,0.02); border: 1px solid rgba(255,255,255,0.8); transform: translateY(0); transition: all 0.3s ease;">
+        
+        <div class="p-brand" style="color:#64748b; font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase;">${esc(brand.brand)}</div>
+        
+        <div class="p-img" style="height: 120px; display: flex; align-items: center; justify-content: center; margin: 15px 0; background: transparent; overflow: hidden;">${imageHtml}</div>
         
         <div class="p-info">
           
-          <!-- Title Area (Fixed Height for Equal Alignment) -->
-          <div class="p-name" style="min-height: 55px; display: flex; flex-direction: column; justify-content: flex-start; margin-bottom: 10px; overflow: hidden;">
-            <div style="font-weight: 700; font-size: 15px; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${esc(pName)}</div>
-            <div style="font-weight: 400; color: var(--mute); font-size: 12px; margin-top: 2px;">${esc(pVariant)}</div>
+          <!-- Title Area (Embossed Look) -->
+          <div class="p-name" style="min-height: 55px; display: flex; flex-direction: column; justify-content: flex-start; margin-bottom: 15px; overflow: hidden;">
+            <div style="font-weight: 800; font-size: 16px; line-height: 1.2; color: #1e293b; text-shadow: 1px 1px 0px rgba(255,255,255,0.8); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${esc(pName)}</div>
+            <div style="font-weight: 500; color: #64748b; font-size: 12px; margin-top: 4px;">${esc(pVariant)}</div>
           </div>
           
-          <!-- Pehla Box: Price aur Advance (Ek Line Set) -->
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px;">
+          <!-- Pehla Box: Price aur Advance (3D Rounded Box) -->
+          <div style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border: 1px solid #fff; border-radius:15px; padding:12px; margin-bottom:15px; box-shadow: inset 0px 2px 5px rgba(255,255,255,0.7), inset 0px -2px 5px rgba(0,0,0,0.05), 0px 4px 10px rgba(0,0,0,0.03);">
             
-            <!-- Total Price Row -->
+            <!-- Total Price Row (Glossy Blue) -->
             <div style="display:flex; align-items:baseline; gap:5px; margin-bottom:8px; white-space:nowrap;">
-              <span style="font-size:13px; color:#64748b; font-weight:600;">Rs</span>
-              <span style="font-size:clamp(16px, 4vw, 20px); color:#2563eb; font-weight:800; overflow:hidden; text-overflow:ellipsis;">${rs(price).replace('Rs ', '').replace('Rs', '')}</span>
+              <span style="font-size:14px; color:#475569; font-weight:700;">Rs</span>
+              <span style="font-size:clamp(18px, 4.5vw, 22px); background: -webkit-linear-gradient(45deg, #1e3a8a, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight:900; overflow:hidden; text-overflow:ellipsis; filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.1));">${rs(price).replace('Rs ', '').replace('Rs', '')}</span>
             </div>
 
-            <!-- Advance Row -->
+            <!-- Advance Row (Glossy Green) -->
             <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:5px;">
               <div style="display:flex; align-items:baseline; gap:4px; white-space:nowrap;">
-                <span style="font-size:12px; color:#16a34a; font-weight:700;">Rs</span>
-                <span style="font-size:clamp(13px, 3.5vw, 16px); color:#16a34a; font-weight:800; overflow:hidden; text-overflow:ellipsis;">${rs(advance).replace('Rs ', '').replace('Rs', '')}</span>
+                <span style="font-size:12px; color:#166534; font-weight:700;">Rs</span>
+                <span style="font-size:clamp(14px, 4vw, 18px); background: -webkit-linear-gradient(45deg, #166534, #22c55e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight:900; overflow:hidden; text-overflow:ellipsis; filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.1));">${rs(advance).replace('Rs ', '').replace('Rs', '')}</span>
               </div>
-              <span style="font-size:11px; color:#64748b; font-weight:500; text-align:right; line-height:1.2;">Advance<br>(${advancePct}%)</span>
+              <span style="font-size:12px; color:#64748b; font-weight:600; text-align:right; line-height:1.2;">Advance<br>(${advancePct}%)</span>
             </div>
 
           </div>
 
-          <!-- Doosra Hissa: 3 Alag Cards (Line wise, Grey Background) -->
-          <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
-            <!-- 3 Month Card -->
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:12px; color:#ea580c; font-weight:600;">3 Months</span>
-              <span style="font-size:13px; color:#ea580c; font-weight:700;">${rs(m3)}</span>
+          <!-- Doosra Hissa: 3D Floating Pills (Black Text) -->
+          <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px;">
+            
+            <!-- 3 Month Pill -->
+            <div style="background:#fff; border:1px solid #e2e8f0; border-radius:20px; padding:10px 15px; display:flex; justify-content:space-between; align-items:center; box-shadow: 0 4px 6px rgba(0,0,0,0.02), inset 0 -3px 0 rgba(0,0,0,0.02);">
+              <span style="font-size:13px; color:#1e293b; font-weight:800;">3 Months</span>
+              <span style="font-size:14px; color:#ea580c; font-weight:900; background:#fff3e0; padding:2px 8px; border-radius:10px;">${rs(m3)}</span>
             </div>
-            <!-- 6 Month Card -->
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:12px; color:#9333ea; font-weight:600;">6 Months</span>
-              <span style="font-size:13px; color:#9333ea; font-weight:700;">${rs(m6)}</span>
+            
+            <!-- 6 Month Pill -->
+            <div style="background:#fff; border:1px solid #e2e8f0; border-radius:20px; padding:10px 15px; display:flex; justify-content:space-between; align-items:center; box-shadow: 0 4px 6px rgba(0,0,0,0.02), inset 0 -3px 0 rgba(0,0,0,0.02);">
+              <span style="font-size:13px; color:#1e293b; font-weight:800;">6 Months</span>
+              <span style="font-size:14px; color:#9333ea; font-weight:900; background:#f3e8ff; padding:2px 8px; border-radius:10px;">${rs(m6)}</span>
             </div>
-            <!-- 9 Month Card -->
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:12px; color:#0d9488; font-weight:600;">9 Months</span>
-              <span style="font-size:13px; color:#0d9488; font-weight:700;">${rs(m9)}</span>
+            
+            <!-- 9 Month Pill -->
+            <div style="background:#fff; border:1px solid #e2e8f0; border-radius:20px; padding:10px 15px; display:flex; justify-content:space-between; align-items:center; box-shadow: 0 4px 6px rgba(0,0,0,0.02), inset 0 -3px 0 rgba(0,0,0,0.02);">
+              <span style="font-size:13px; color:#1e293b; font-weight:800;">9 Months</span>
+              <span style="font-size:14px; color:#0d9488; font-weight:900; background:#ccfbf1; padding:2px 8px; border-radius:10px;">${rs(m9)}</span>
             </div>
+
           </div>
 
-          <div class="p-actions" style="display:flex; flex-direction:column; gap:6px; margin-top:auto;" onclick="event.stopPropagation()">
-            <button class="btn-action verify-btn" style="width:100%;" onclick="showVerifyForm(${pData})">Verification</button>
-            <a class="btn-wa" href="https://wa.me/?text=${msg}" target="_blank" style="width:100%; text-align:center;">Order on WhatsApp</a>
+          <!-- Buttons (3D Glossy) -->
+          <div class="p-actions" style="display:flex; flex-direction:column; gap:10px; margin-top:auto;" onclick="event.stopPropagation()">
+            
+            <button class="btn-action verify-btn" style="width:100%; padding:12px; border-radius:12px; background:#fff; border:2px solid #3b82f6; color:#1d4ed8; font-weight:800; font-size:14px; cursor:pointer; box-shadow: 0 4px 0 #bfdbfe; transition: 0.1s;" onclick="showVerifyForm(${pData})">Verification</button>
+            
+            <a class="btn-wa" href="https://wa.me/?text=${msg}" target="_blank" style="width:100%; padding:12px; border-radius:12px; background: linear-gradient(to bottom, #22c55e, #16a34a); color:white; font-weight:800; font-size:14px; text-align:center; text-decoration:none; box-shadow: 0 4px 0 #166534; border: 1px solid #15803d; transition: 0.1s;">Order on WhatsApp</a>
+          
           </div>
         </div>
       </div>`;
