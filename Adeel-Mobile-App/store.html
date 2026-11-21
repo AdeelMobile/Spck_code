@@ -19,10 +19,33 @@
   <div id="sec-footer"></div>
 </div>
 
-<!-- Supabase Library Add Ki Gayi Hai -->
+<!-- Modals / Popups (Yeh HTML mein hi rehne chahiye) -->
+<div class="modal-overlay" id="infoModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modalTitle">Title</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- Supabase Library -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<!-- Main App Setup -->
 <script src="js/app.js"></script>
-<script src="js/store.js"></script>
+
+<!-- ========================================== -->
+<!-- WEBSITE LOGIC FILES (6 Alag Files) -->
+<!-- Tarteeb (Order) ka khayal rakhein -->
+<!-- ========================================== -->
+<script src="js/website/core.js"></script>
+<script src="js/website/products.js"></script>
+<script src="js/website/filters.js"></script>
+<script src="js/website/features.js"></script>
+<script src="js/website/popups.js"></script>
+<script src="js/website/verification.js"></script>
+
 </body>
 </html>
